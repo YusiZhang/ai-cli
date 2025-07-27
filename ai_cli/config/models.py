@@ -113,6 +113,14 @@ class AIConfig(BaseSettings):
                 "endpoint": "http://localhost:11434",
             }
 
+        # Add default Gemini model if not present
+        if "gemini" not in v:
+            v["gemini"] = {
+                "provider": "gemini",
+                "model": "gemini-2.5-flash",
+                "api_key": "env:GEMINI_API_KEY",
+            }
+
         return v
 
     def get_config_path(self) -> Path:
