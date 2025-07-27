@@ -74,10 +74,10 @@ class AIConfig(BaseSettings):
             }
 
         # Add default Claude model if not present
-        if "anthropic/claude-3-sonnet" not in v:
-            v["anthropic/claude-3-sonnet"] = {
+        if "anthropic/claude-3-5-sonnet" not in v:
+            v["anthropic/claude-3-5-sonnet"] = {
                 "provider": "anthropic",
-                "model": "claude-3-sonnet-20240229",
+                "model": "claude-3-5-sonnet-20241022",
                 "api_key": "env:ANTHROPIC_API_KEY",
             }
 

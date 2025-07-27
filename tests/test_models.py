@@ -127,7 +127,7 @@ class TestAIConfig:
 
         assert config.default_model == "openai/gpt-4"
         assert "openai/gpt-4" in config.models
-        assert "anthropic/claude-3-sonnet" in config.models
+        assert "anthropic/claude-3-5-sonnet" in config.models
         assert "ollama/llama2" in config.models
         assert isinstance(config.roundtable, RoundTableConfig)
         assert isinstance(config.ui, UIConfig)

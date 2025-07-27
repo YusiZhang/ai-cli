@@ -122,8 +122,8 @@ class LiteLLMProvider(AIProvider):
         if self.config.provider == "openai":
             return self.config.model
         elif self.config.provider == "anthropic":
-            # LiteLLM expects anthropic models without prefix
-            return self.config.model
+            # LiteLLM expects anthropic models with provider prefix
+            return f"anthropic/{self.config.model}"
         elif self.config.provider == "ollama":
             return f"ollama/{self.config.model}"
         elif self.config.provider == "gemini":
