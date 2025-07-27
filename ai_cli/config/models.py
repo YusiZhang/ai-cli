@@ -4,6 +4,7 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from ..core.roles import RoundtableRole
 from ..utils.env import env_manager
 
 
@@ -34,6 +35,29 @@ class RoundTableConfig(BaseModel):
     critique_mode: bool = True
     parallel_responses: bool = False
     timeout_seconds: int = 30
+
+    # Enhanced role-based configuration
+    use_role_based_prompting: bool = True
+    role_assignments: dict[str, list[RoundtableRole]] = {}
+    role_rotation: bool = True
+    preserve_original_context: bool = True
+    custom_role_templates: dict[RoundtableRole, str] = {}
+
+    def get_available_roles_for_model(self, model_name: str) -> list[RoundtableRole]:
+        """Get the roles that a specific model can play."""
+        if model_name in self.role_assignments:
+            return self.role_assignments[model_name]
+        # Default: all models can play all roles
+        return list(RoundtableRole)
+
+    def can_model_play_role(self, model_name: str, role: RoundtableRole) -> bool:
+        """Check if a model can play a specific role."""
+        available_roles = self.get_available_roles_for_model(model_name)
+        return role in available_roles
+
+    def get_role_template(self, role: RoundtableRole) -> Optional[str]:
+        """Get custom template for a role, if configured."""
+        return self.custom_role_templates.get(role)
 
 
 class UIConfig(BaseModel):
