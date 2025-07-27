@@ -1,29 +1,31 @@
-import toml
 from pathlib import Path
-from typing import Optional, Dict, Any
-from .models import AIConfig, ModelConfig, RoundTableConfig, UIConfig
+from typing import Any, Optional
+
+import toml
+
+from .models import AIConfig, ModelConfig
 
 
 class ConfigManager:
     """Manages loading, saving, and updating configuration."""
-    
-    def __init__(self):
+
+    def __init__(self) -> None:
         self._config: Optional[AIConfig] = None
         self._config_path = Path.home() / ".ai-cli" / "config.toml"
         self._ensure_config_dir()
-    
-    def _ensure_config_dir(self):
+
+    def _ensure_config_dir(self) -> None:
         """Ensure the configuration directory exists."""
         self._config_path.parent.mkdir(exist_ok=True)
-    
+
     def load_config(self) -> AIConfig:
         """Load configuration from file or create default."""
         if self._config is not None:
             return self._config
-            
+
         if self._config_path.exists():
             try:
-                with open(self._config_path, 'r') as f:
+                with open(self._config_path) as f:
                     config_data = toml.load(f)
                 self._config = AIConfig(**config_data)
             except Exception as e:
@@ -33,24 +35,24 @@ class ConfigManager:
         else:
             self._config = AIConfig()
             self.save_config()  # Save default config
-            
+
         return self._config
-    
-    def save_config(self, config: Optional[AIConfig] = None):
+
+    def save_config(self, config: Optional[AIConfig] = None) -> None:
         """Save configuration to file."""
         if config is None:
             config = self._config
         if config is None:
             raise ValueError("No configuration to save")
-            
+
         config_dict = self._config_to_dict(config)
-        
-        with open(self._config_path, 'w') as f:
+
+        with open(self._config_path, "w") as f:
             toml.dump(config_dict, f)
-    
-    def _config_to_dict(self, config: AIConfig) -> Dict[str, Any]:
+
+    def _config_to_dict(self, config: AIConfig) -> dict[str, Any]:
         """Convert AIConfig to dictionary for TOML serialization."""
-        result = {
+        result: dict[str, Any] = {
             "default_model": config.default_model,
             "models": {},
             "roundtable": {
@@ -66,54 +68,58 @@ class ConfigManager:
                 "format": config.ui.format,
                 "show_model_icons": config.ui.show_model_icons,
                 "show_timestamps": config.ui.show_timestamps,
-            }
+            },
         }
-        
+
         # Convert model configs to dicts
         for name, model_config in config.models.items():
-            if isinstance(model_config, ModelConfig):
-                model_dict = {
-                    "provider": model_config.provider,
-                    "model": model_config.model,
-                    "max_tokens": model_config.max_tokens,
-                    "temperature": model_config.temperature,
-                    "context_window": model_config.context_window,
-                }
-                # Handle API key storage - save env: references, not resolved keys
-                if model_config.api_key:
-                    # If it looks like a resolved API key, don't save it
-                    if (model_config.api_key.startswith('sk-') or 
-                        model_config.api_key.startswith('AIzaSy') or
-                        len(model_config.api_key) > 50):
-                        # Try to determine the original env reference
-                        if name == "openai/gpt-4" or "openai" in model_config.provider:
-                            model_dict["api_key"] = "env:OPENAI_API_KEY"
-                        elif name == "anthropic/claude-3-sonnet" or "anthropic" in model_config.provider:
-                            model_dict["api_key"] = "env:ANTHROPIC_API_KEY"
-                        elif "gemini" in model_config.provider:
-                            model_dict["api_key"] = "env:GOOGLE_API_KEY"
-                    else:
-                        # It's likely an env: reference, keep it as is
-                        model_dict["api_key"] = model_config.api_key
-                    
-                if model_config.endpoint:
-                    model_dict["endpoint"] = model_config.endpoint
-                    
-                result["models"][name] = model_dict
-            else:
-                result["models"][name] = model_config
-                
+            model_dict = {
+                "provider": model_config.provider,
+                "model": model_config.model,
+                "max_tokens": model_config.max_tokens,
+                "temperature": model_config.temperature,
+                "context_window": model_config.context_window,
+            }
+            # Handle API key storage - save env: references, not resolved keys
+            if model_config.api_key:
+                # If it looks like a resolved API key, don't save it
+                if (
+                    model_config.api_key.startswith("sk-")
+                    or model_config.api_key.startswith("AIzaSy")
+                    or len(model_config.api_key) > 50
+                ):
+                    # Try to determine the original env reference
+                    if name == "openai/gpt-4" or "openai" in model_config.provider:
+                        model_dict["api_key"] = "env:OPENAI_API_KEY"
+                    elif (
+                        name == "anthropic/claude-3-sonnet"
+                        or "anthropic" in model_config.provider
+                    ):
+                        model_dict["api_key"] = "env:ANTHROPIC_API_KEY"
+                    elif "gemini" in model_config.provider:
+                        model_dict["api_key"] = "env:GOOGLE_API_KEY"
+                else:
+                    # It's likely an env: reference, keep it as is
+                    model_dict["api_key"] = model_config.api_key
+
+            if model_config.endpoint:
+                model_dict["endpoint"] = model_config.endpoint
+
+            result["models"][name] = model_dict
+
         return result
-    
-    def update_model(self, model_name: str, **updates):
+
+    def update_model(self, model_name: str, **updates: Any) -> None:
         """Update a specific model configuration."""
         config = self.load_config()
-        
+
         if model_name not in config.models:
             # Create new model config
             # Ensure model field is set correctly, prioritizing updates over model_name
-            model_config_data = {"model": model_name}
-            model_config_data.update(updates)  # This will override model if specified in updates
+            model_config_data: dict[str, Any] = {"model": model_name}
+            model_config_data.update(
+                updates
+            )  # This will override model if specified in updates
             config.models[model_name] = ModelConfig(**model_config_data)
         else:
             # Update existing model config
@@ -122,18 +128,18 @@ class ConfigManager:
                 if hasattr(model_config, key):
                     setattr(model_config, key, value)
             config.models[model_name] = model_config
-            
+
         self.save_config(config)
-    
-    def set_default_model(self, model_name: str):
+
+    def set_default_model(self, model_name: str) -> None:
         """Set the default model."""
         config = self.load_config()
         if model_name not in config.models:
             raise ValueError(f"Model '{model_name}' not found in configuration")
         config.default_model = model_name
         self.save_config(config)
-    
-    def add_roundtable_model(self, model_name: str):
+
+    def add_roundtable_model(self, model_name: str) -> None:
         """Add a model to the round-table configuration."""
         config = self.load_config()
         if model_name not in config.models:
@@ -141,22 +147,19 @@ class ConfigManager:
         if model_name not in config.roundtable.enabled_models:
             config.roundtable.enabled_models.append(model_name)
             self.save_config(config)
-    
-    def remove_roundtable_model(self, model_name: str):
+
+    def remove_roundtable_model(self, model_name: str) -> None:
         """Remove a model from the round-table configuration."""
         config = self.load_config()
         if model_name in config.roundtable.enabled_models:
             config.roundtable.enabled_models.remove(model_name)
             self.save_config(config)
-    
-    def list_models(self) -> Dict[str, ModelConfig]:
+
+    def list_models(self) -> dict[str, ModelConfig]:
         """List all configured models."""
         config = self.load_config()
-        return {
-            name: config.get_model_config(name) 
-            for name in config.models.keys()
-        }
-    
+        return {name: config.get_model_config(name) for name in config.models.keys()}
+
     def get_config_path(self) -> Path:
         """Get the path to the configuration file."""
         return self._config_path
