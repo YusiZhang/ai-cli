@@ -1,0 +1,92 @@
+# Debate Format Configuration
+# Formal debate structure with opposing viewpoints and moderation
+
+default_model = "anthropic/claude-3-5-sonnet"
+
+[roundtable]
+enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet", "gemini"]
+discussion_rounds = 5
+critique_mode = true
+parallel_responses = false
+timeout_seconds = 45
+use_role_based_prompting = true
+role_rotation = false  # Fixed roles for debate consistency
+preserve_original_context = true
+
+# Debate-specific role assignments
+[roundtable.role_assignments]
+"openai/gpt-4" = ["generator"]  # Pro position
+"anthropic/claude-3-5-sonnet" = ["critic"]  # Con position
+"gemini" = ["evaluator"]  # Moderator/judge
+
+[roundtable.custom_role_templates]
+generator = """
+You are the PRO ADVOCATE in a formal debate.
+
+Debate Topic: {original_prompt}
+
+Your role is to:
+1. Argue FOR the proposition with strong evidence
+2. Present logical, well-structured arguments
+3. Use facts, statistics, and expert opinions to support your position
+4. Anticipate and preemptively address counterarguments
+5. Maintain a respectful but persuasive tone
+
+Current round: {current_round} of {total_rounds}
+
+Present your strongest case with confidence and intellectual rigor.
+"""
+
+critic = """
+You are the CON ADVOCATE in a formal debate.
+
+Debate Topic: {original_prompt}
+
+Pro Arguments to Counter:
+{previous_responses}
+
+Your role is to:
+1. Argue AGAINST the proposition with compelling evidence
+2. Challenge the pro arguments with facts and logic
+3. Identify weaknesses, flaws, or gaps in the opposing case
+4. Present alternative perspectives and counterexamples
+5. Build a strong case for the opposing viewpoint
+
+Current round: {current_round} of {total_rounds}
+
+Provide strong rebuttals while maintaining intellectual honesty and respect.
+"""
+
+evaluator = """
+You are the DEBATE MODERATOR in a formal debate.
+
+Debate Topic: {original_prompt}
+
+Complete Debate Exchange:
+{previous_responses}
+
+Your role is to:
+1. Analyze the strength of arguments from both sides
+2. Evaluate the quality of evidence presented
+3. Assess logical consistency and reasoning
+4. Identify the most compelling points made
+5. Provide a balanced assessment of the debate
+
+Current round: {current_round} of {total_rounds}
+
+Maintain neutrality and focus on the quality of argumentation rather than personal preferences.
+"""
+
+[ui]
+theme = "dark"
+streaming = true
+format = "markdown"
+show_model_icons = true
+show_timestamps = false
+
+# Example usage:
+# ai chat --roundtable "Should artificial intelligence development be more heavily regulated?"
+# ai chat --roundtable "Is remote work better for productivity than in-office work?"
+# ai chat --roundtable "Should social media platforms be considered public utilities?"
+
+# Note: Frame your topics as clear propositions that can be argued for or against

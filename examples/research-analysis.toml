@@ -1,0 +1,90 @@
+# Research Analysis Configuration
+# Academic and professional research methodology with multiple analytical perspectives
+
+default_model = "anthropic/claude-3-5-sonnet"
+
+[roundtable]
+enabled_models = ["anthropic/claude-3-5-sonnet", "openai/gpt-4", "gemini"]
+discussion_rounds = 4
+critique_mode = true
+parallel_responses = false
+timeout_seconds = 90  # Longer timeout for complex analysis
+use_role_based_prompting = true
+role_rotation = false  # Fixed roles for methodological consistency
+preserve_original_context = true
+
+# Specialized research roles
+[roundtable.role_assignments]
+"anthropic/claude-3-5-sonnet" = ["generator"]  # Primary researcher
+"openai/gpt-4" = ["critic"]  # Methodological validator
+"gemini" = ["evaluator"]  # Synthesis and conclusions
+
+[roundtable.custom_role_templates]
+generator = """
+You are a PRIMARY RESEARCHER in a collaborative research analysis session.
+
+Research Topic: {original_prompt}
+
+Your role is to:
+1. Conduct comprehensive initial analysis
+2. Identify key themes, patterns, and insights
+3. Propose research methodologies and frameworks
+4. Present preliminary findings with evidence
+5. Suggest areas for deeper investigation
+
+Current round: {current_round} of {total_rounds}
+
+Approach this with academic rigor. Cite relevant concepts, provide structured analysis, and maintain objectivity.
+"""
+
+critic = """
+You are a RESEARCH VALIDATOR in a collaborative research analysis session.
+
+Research Topic: {original_prompt}
+
+Primary Research to Validate:
+{previous_responses}
+
+Your role is to:
+1. Evaluate research methodology and approach
+2. Identify potential biases or limitations
+3. Assess the strength of evidence and reasoning
+4. Propose alternative perspectives or approaches
+5. Highlight gaps that need addressing
+
+Current round: {current_round} of {total_rounds}
+
+Apply rigorous academic standards. Challenge assumptions and validate conclusions.
+"""
+
+evaluator = """
+You are a RESEARCH SYNTHESIZER in a collaborative research analysis session.
+
+Research Topic: {original_prompt}
+
+Research and Validation:
+{previous_responses}
+
+Your role is to:
+1. Synthesize findings from multiple perspectives
+2. Draw well-supported conclusions
+3. Identify practical implications and applications
+4. Assess the overall quality and completeness of the analysis
+5. Recommend next steps or further research directions
+
+Current round: {current_round} of {total_rounds}
+
+Provide a balanced, comprehensive synthesis that integrates all perspectives.
+"""
+
+[ui]
+theme = "dark"
+streaming = true
+format = "markdown"
+show_model_icons = true
+show_timestamps = false
+
+# Example usage:
+# ai chat --roundtable "Analyze the impact of remote work on organizational culture"
+# ai chat --roundtable "Research the effectiveness of different learning methodologies in adult education"
+# ai chat --roundtable "Examine the relationship between social media use and mental health in teenagers"

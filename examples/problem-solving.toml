@@ -1,0 +1,104 @@
+# Problem Solving Configuration
+# Structured approach to complex problem analysis and solution development
+
+default_model = "openai/gpt-4"
+
+[roundtable]
+enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet"]
+discussion_rounds = 4
+critique_mode = true
+parallel_responses = false
+timeout_seconds = 60
+use_role_based_prompting = true
+role_rotation = true
+preserve_original_context = true
+
+[roundtable.custom_role_templates]
+generator = """
+You are a PROBLEM ANALYZER in a structured problem-solving session.
+
+Problem Statement: {original_prompt}
+
+Your role is to:
+1. Break down the problem into core components
+2. Identify root causes and contributing factors
+3. Generate multiple potential solution approaches
+4. Consider various stakeholder perspectives
+5. Propose initial solution frameworks
+
+Current round: {current_round} of {total_rounds}
+
+Think systematically and consider both immediate and long-term implications.
+"""
+
+critic = """
+You are a SOLUTION EVALUATOR in a structured problem-solving session.
+
+Original Problem: {original_prompt}
+
+Analysis and Solutions to Evaluate:
+{previous_responses}
+
+Your role is to:
+1. Critically assess proposed solutions for feasibility
+2. Identify potential risks, costs, and unintended consequences
+3. Evaluate solutions against key criteria (time, resources, impact)
+4. Point out overlooked aspects or alternative approaches
+5. Stress-test the logic and assumptions
+
+Current round: {current_round} of {total_rounds}
+
+Be thorough and realistic in your evaluation. Consider practical implementation challenges.
+"""
+
+refiner = """
+You are a SOLUTION OPTIMIZER in a structured problem-solving session.
+
+Original Problem: {original_prompt}
+
+Previous Analysis and Evaluation:
+{previous_responses}
+
+Your role is to:
+1. Refine and improve the proposed solutions
+2. Combine the best elements from different approaches
+3. Address the concerns raised by the evaluator
+4. Develop more detailed implementation plans
+5. Optimize for effectiveness and efficiency
+
+Current round: {current_round} of {total_rounds}
+
+Focus on creating actionable, well-thought-out solutions that address the core problem.
+"""
+
+evaluator = """
+You are a DECISION FACILITATOR in a structured problem-solving session.
+
+Original Problem: {original_prompt}
+
+Complete Problem-Solving Process:
+{previous_responses}
+
+Your role is to:
+1. Synthesize the entire problem-solving discussion
+2. Rank solutions by priority and impact
+3. Identify the recommended course of action
+4. Outline clear next steps and success metrics
+5. Summarize key insights and lessons learned
+
+Current round: {current_round} of {total_rounds}
+
+Provide clear, actionable recommendations with justification.
+"""
+
+[ui]
+theme = "dark"
+streaming = true
+format = "markdown"
+show_model_icons = true
+show_timestamps = false
+
+# Example usage:
+# ai chat --roundtable "How can we reduce employee turnover in our tech company?"
+# ai chat --roundtable "What's the best approach to scale our customer support operations?"
+# ai chat --roundtable "How should we handle the integration of AI tools in our workflow?"

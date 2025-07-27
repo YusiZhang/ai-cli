@@ -3,6 +3,7 @@ from typing import Any, Optional
 
 import toml
 
+from ..core.roles import RoundtableRole
 from .models import AIConfig, ModelConfig
 
 
@@ -61,6 +62,17 @@ class ConfigManager:
                 "critique_mode": config.roundtable.critique_mode,
                 "parallel_responses": config.roundtable.parallel_responses,
                 "timeout_seconds": config.roundtable.timeout_seconds,
+                "use_role_based_prompting": config.roundtable.use_role_based_prompting,
+                "role_rotation": config.roundtable.role_rotation,
+                "preserve_original_context": config.roundtable.preserve_original_context,
+                "role_assignments": {
+                    model: [role.value for role in roles]
+                    for model, roles in config.roundtable.role_assignments.items()
+                },
+                "custom_role_templates": {
+                    role.value: template
+                    for role, template in config.roundtable.custom_role_templates.items()
+                },
             },
             "ui": {
                 "theme": config.ui.theme,
@@ -163,3 +175,55 @@ class ConfigManager:
     def get_config_path(self) -> Path:
         """Get the path to the configuration file."""
         return self._config_path
+
+    def set_role_based_prompting(self, enabled: bool) -> None:
+        """Enable or disable role-based prompting."""
+        config = self.load_config()
+        config.roundtable.use_role_based_prompting = enabled
+        self.save_config(config)
+
+    def set_role_rotation(self, enabled: bool) -> None:
+        """Enable or disable role rotation."""
+        config = self.load_config()
+        config.roundtable.role_rotation = enabled
+        self.save_config(config)
+
+    def assign_roles_to_model(
+        self, model_name: str, roles: list[RoundtableRole]
+    ) -> None:
+        """Assign specific roles to a model."""
+        config = self.load_config()
+        if model_name not in config.models:
+            raise ValueError(f"Model '{model_name}' not found in configuration")
+        config.roundtable.role_assignments[model_name] = roles
+        self.save_config(config)
+
+    def remove_role_assignments(self, model_name: str) -> None:
+        """Remove role assignments for a model (allow all roles)."""
+        config = self.load_config()
+        if model_name in config.roundtable.role_assignments:
+            del config.roundtable.role_assignments[model_name]
+            self.save_config(config)
+
+    def set_custom_role_template(self, role: RoundtableRole, template: str) -> None:
+        """Set a custom template for a specific role."""
+        config = self.load_config()
+        config.roundtable.custom_role_templates[role] = template
+        self.save_config(config)
+
+    def remove_custom_role_template(self, role: RoundtableRole) -> None:
+        """Remove custom template for a role (use default)."""
+        config = self.load_config()
+        if role in config.roundtable.custom_role_templates:
+            del config.roundtable.custom_role_templates[role]
+            self.save_config(config)
+
+    def get_role_assignments(self) -> dict[str, list[RoundtableRole]]:
+        """Get all role assignments."""
+        config = self.load_config()
+        return config.roundtable.role_assignments.copy()
+
+    def get_custom_role_templates(self) -> dict[RoundtableRole, str]:
+        """Get all custom role templates."""
+        config = self.load_config()
+        return config.roundtable.custom_role_templates.copy()

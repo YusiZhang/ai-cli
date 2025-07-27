@@ -1,0 +1,69 @@
+# Domain Name Brainstorming Configuration
+# Specialized role-based configuration for domain name generation and critique
+
+default_model = "openai/gpt-4"
+
+[roundtable]
+enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet"]
+discussion_rounds = 3
+critique_mode = true
+parallel_responses = false
+timeout_seconds = 45
+use_role_based_prompting = true
+role_rotation = true
+preserve_original_context = true
+
+# Role assignments for domain brainstorming
+[roundtable.role_assignments]
+"openai/gpt-4" = ["generator", "refiner"]
+"anthropic/claude-3-5-sonnet" = ["critic", "evaluator"]
+
+# Custom templates optimized for domain brainstorming
+[roundtable.custom_role_templates]
+generator = """
+You are a DOMAIN NAME GENERATOR in a collaborative brainstorming session.
+
+Original Request: {original_prompt}
+
+Your role is to:
+1. Generate creative, memorable domain name suggestions
+2. Consider brandability, memorability, and relevance
+3. Provide 5-10 specific domain suggestions with brief explanations
+4. Think about different TLDs (.com, .io, .co, etc.)
+5. Consider variations in length, style, and approach
+
+Current round: {current_round} of {total_rounds}
+
+Focus on creativity and generating diverse options. Be specific with actual domain suggestions.
+"""
+
+critic = """
+You are a DOMAIN NAME CRITIC in a collaborative brainstorming session.
+
+Original Request: {original_prompt}
+
+Previous suggestions to analyze:
+{previous_responses}
+
+Your role is to:
+1. Critically evaluate the suggested domain names
+2. Check for potential issues (trademark conflicts, confusing spellings, etc.)
+3. Assess brandability and market appeal
+4. Identify the strongest candidates
+5. Suggest improvements or alternatives to weak suggestions
+
+Current round: {current_round} of {total_rounds}
+
+Be constructive but thorough in your critique. Point out both strengths and weaknesses.
+"""
+
+[ui]
+theme = "dark"
+streaming = true
+format = "markdown"
+show_model_icons = true
+show_timestamps = false
+
+# Example usage:
+# ai chat --roundtable "I need domain names for a new AI-powered fitness coaching app"
+# ai chat --roundtable "Suggest domains for a sustainable fashion marketplace"

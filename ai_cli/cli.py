@@ -8,6 +8,7 @@ from rich.panel import Panel
 
 from .config.manager import ConfigManager
 from .core.chat import ChatEngine
+from .core.roles import RoundtableRole
 from .ui.interactive import InteractiveSession
 from .utils.env import env_manager
 
@@ -218,6 +219,18 @@ def config_roundtable(
     list_models: bool = typer.Option(
         False, "--list", "-l", help="List round-table models"
     ),
+    enable_roles: bool = typer.Option(
+        False, "--enable-roles", help="Enable role-based prompting"
+    ),
+    disable_roles: bool = typer.Option(
+        False, "--disable-roles", help="Disable role-based prompting"
+    ),
+    enable_rotation: bool = typer.Option(
+        False, "--enable-rotation", help="Enable role rotation"
+    ),
+    disable_rotation: bool = typer.Option(
+        False, "--disable-rotation", help="Disable role rotation"
+    ),
 ) -> None:
     """Manage round-table configuration."""
     try:
@@ -227,23 +240,146 @@ def config_roundtable(
         elif remove:
             config_manager.remove_roundtable_model(remove)
             console.print(f"[green]✓ Removed {remove} from round-table[/green]")
+        elif enable_roles:
+            config_manager.set_role_based_prompting(True)
+            console.print("[green]✓ Role-based prompting enabled[/green]")
+        elif disable_roles:
+            config_manager.set_role_based_prompting(False)
+            console.print("[green]✓ Role-based prompting disabled[/green]")
+        elif enable_rotation:
+            config_manager.set_role_rotation(True)
+            console.print("[green]✓ Role rotation enabled[/green]")
+        elif disable_rotation:
+            config_manager.set_role_rotation(False)
+            console.print("[green]✓ Role rotation disabled[/green]")
         elif list_models:
             config = config_manager.load_config()
-            console.print("\n[bold blue]🔄 Round-table Models[/bold blue]\n")
+            console.print("\n[bold blue]🔄 Round-table Configuration[/bold blue]\n")
+
+            console.print("[cyan]Models:[/cyan]")
             for model in config.roundtable.enabled_models:
                 console.print(f"  • {model}")
+
+            console.print("\n[cyan]Settings:[/cyan]")
+            console.print(f"  Discussion rounds: {config.roundtable.discussion_rounds}")
+            console.print(f"  Parallel mode: {config.roundtable.parallel_responses}")
             console.print(
-                f"\n[dim]Discussion rounds: {config.roundtable.discussion_rounds}[/dim]"
+                f"  Role-based prompting: {config.roundtable.use_role_based_prompting}"
             )
-            console.print(
-                f"[dim]Parallel mode: {config.roundtable.parallel_responses}[/dim]\n"
-            )
+            console.print(f"  Role rotation: {config.roundtable.role_rotation}")
+
+            if config.roundtable.role_assignments:
+                console.print("\n[cyan]Role Assignments:[/cyan]")
+                for model, roles in config.roundtable.role_assignments.items():
+                    role_names = [role.value.title() for role in roles]
+                    console.print(f"  {model}: {', '.join(role_names)}")
+
+            if config.roundtable.custom_role_templates:
+                console.print("\n[cyan]Custom Role Templates:[/cyan]")
+                for role, template in config.roundtable.custom_role_templates.items():
+                    preview = template[:50] + "..." if len(template) > 50 else template
+                    console.print(f"  {role.value.title()}: {preview}")
+
+            console.print()
         else:
-            console.print("[yellow]Please specify --add, --remove, or --list[/yellow]")
+            console.print(
+                "[yellow]Please specify an option (--add, --remove, --list, --enable-roles, --disable-roles, --enable-rotation, --disable-rotation)[/yellow]"
+            )
 
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1) from e
+
+
+@config_app.command("roles")
+def config_roles(
+    model: Optional[str] = typer.Option(
+        None, "--model", "-m", help="Model to configure roles for"
+    ),
+    assign: Optional[str] = typer.Option(
+        None,
+        "--assign",
+        "-a",
+        help="Assign roles (comma-separated: generator,critic,refiner,evaluator)",
+    ),
+    clear: Optional[str] = typer.Option(
+        None, "--clear", "-c", help="Clear role assignments for model"
+    ),
+    list_assignments: bool = typer.Option(
+        False, "--list", "-l", help="List all role assignments"
+    ),
+    list_roles: bool = typer.Option(False, "--list-roles", help="List available roles"),
+) -> None:
+    """Manage role assignments for roundtable models."""
+    try:
+        if list_roles:
+            console.print("\n[bold blue]🎭 Available Roundtable Roles[/bold blue]\n")
+            for role in RoundtableRole:
+                console.print(
+                    f"[cyan]{role.value}[/cyan]: {_get_role_description(role)}"
+                )
+            console.print()
+        elif list_assignments:
+            assignments = config_manager.get_role_assignments()
+            console.print("\n[bold blue]🎭 Role Assignments[/bold blue]\n")
+            if assignments:
+                for model_name, roles in assignments.items():
+                    role_names = [role.value.title() for role in roles]
+                    console.print(f"[cyan]{model_name}[/cyan]: {', '.join(role_names)}")
+                console.print(
+                    "\n[dim]Models without assignments can play all roles[/dim]"
+                )
+            else:
+                console.print("[dim]No specific role assignments configured[/dim]")
+                console.print("[dim]All models can play all roles[/dim]")
+            console.print()
+        elif model and assign:
+            # Parse roles from comma-separated string
+            role_names = [name.strip().lower() for name in assign.split(",")]
+            roles = []
+            for role_name in role_names:
+                try:
+                    role = RoundtableRole(role_name)
+                    roles.append(role)
+                except ValueError as err:
+                    console.print(
+                        f"[red]Error: Invalid role '{role_name}'. Use --list-roles to see available roles.[/red]"
+                    )
+                    raise typer.Exit(1) from err
+
+            config_manager.assign_roles_to_model(model, roles)
+            role_names_display = [role.value.title() for role in roles]
+            console.print(
+                f"[green]✓ Assigned roles to {model}: {', '.join(role_names_display)}[/green]"
+            )
+        elif clear:
+            config_manager.remove_role_assignments(clear)
+            console.print(f"[green]✓ Cleared role assignments for {clear}[/green]")
+        else:
+            console.print(
+                "[yellow]Please specify an option (--list, --list-roles, --model with --assign, or --clear)[/yellow]"
+            )
+            console.print("[dim]Examples:[/dim]")
+            console.print("[dim]  ai config roles --list-roles[/dim]")
+            console.print(
+                "[dim]  ai config roles --model gpt-4 --assign generator,critic[/dim]"
+            )
+            console.print("[dim]  ai config roles --clear gpt-4[/dim]")
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1) from e
+
+
+def _get_role_description(role: RoundtableRole) -> str:
+    """Get a description for a role."""
+    descriptions = {
+        RoundtableRole.GENERATOR: "Creates initial ideas, suggestions, or solutions",
+        RoundtableRole.CRITIC: "Analyzes and critiques previous responses",
+        RoundtableRole.REFINER: "Improves and builds upon existing ideas",
+        RoundtableRole.EVALUATOR: "Evaluates final outcomes and provides summaries",
+    }
+    return descriptions.get(role, "No description available")
 
 
 @config_app.command("env")

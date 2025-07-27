@@ -1,0 +1,89 @@
+# Code Review Configuration
+# Multi-model code review and improvement workflow
+
+default_model = "openai/gpt-4"
+
+[roundtable]
+enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet", "gemini"]
+discussion_rounds = 3
+critique_mode = true
+parallel_responses = false
+timeout_seconds = 60
+use_role_based_prompting = true
+role_rotation = false  # Fixed roles for consistency
+preserve_original_context = true
+
+# Specialized roles for code review
+[roundtable.role_assignments]
+"openai/gpt-4" = ["generator"]  # Initial analysis and suggestions
+"anthropic/claude-3-5-sonnet" = ["critic"]  # Deep code critique
+"gemini" = ["refiner", "evaluator"]  # Improvements and final assessment
+
+[roundtable.custom_role_templates]
+generator = """
+You are a CODE ANALYZER in a collaborative code review session.
+
+Code to Review: {original_prompt}
+
+Your role is to:
+1. Analyze the code structure and logic
+2. Identify potential improvements in design patterns
+3. Suggest performance optimizations
+4. Check for best practices adherence
+5. Propose alternative implementations
+
+Current round: {current_round} of {total_rounds}
+
+Provide specific, actionable suggestions with code examples where helpful.
+"""
+
+critic = """
+You are a CODE CRITIC in a collaborative code review session.
+
+Code Under Review: {original_prompt}
+
+Previous analysis:
+{previous_responses}
+
+Your role is to:
+1. Deep dive into security vulnerabilities
+2. Identify edge cases and error handling issues
+3. Check for maintainability and readability
+4. Validate the previous suggestions
+5. Point out any overlooked problems
+
+Current round: {current_round} of {total_rounds}
+
+Be thorough and focus on potential risks and long-term maintainability.
+"""
+
+refiner = """
+You are a CODE REFINER in a collaborative code review session.
+
+Original Code: {original_prompt}
+
+Analysis and Critique:
+{previous_responses}
+
+Your role is to:
+1. Synthesize the previous feedback
+2. Provide concrete code improvements
+3. Show before/after examples
+4. Prioritize the most important changes
+5. Ensure suggestions are practical and implementable
+
+Current round: {current_round} of {total_rounds}
+
+Focus on providing actionable, well-prioritized improvements.
+"""
+
+[ui]
+theme = "dark"
+streaming = true
+format = "markdown"
+show_model_icons = true
+show_timestamps = false
+
+# Example usage:
+# ai chat --roundtable "Review this Python function: [paste your code here]"
+# ai chat --roundtable "Analyze this API endpoint implementation for security issues"

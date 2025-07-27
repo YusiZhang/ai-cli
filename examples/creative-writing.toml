@@ -1,0 +1,90 @@
+# Creative Writing Configuration
+# Collaborative story and content creation workflow
+
+default_model = "anthropic/claude-3-5-sonnet"
+
+[roundtable]
+enabled_models = ["anthropic/claude-3-5-sonnet", "openai/gpt-4", "gemini"]
+discussion_rounds = 3
+critique_mode = true
+parallel_responses = false
+timeout_seconds = 60
+use_role_based_prompting = true
+role_rotation = true
+preserve_original_context = true
+
+# Role preferences for creative writing
+[roundtable.role_assignments]
+"anthropic/claude-3-5-sonnet" = ["generator", "refiner"]  # Strong at creative content
+"openai/gpt-4" = ["critic", "evaluator"]  # Good at analysis and structure
+"gemini" = ["generator", "critic", "refiner"]  # Flexible creative assistant
+
+[roundtable.custom_role_templates]
+generator = """
+You are a CREATIVE WRITER in a collaborative writing session.
+
+Writing Prompt: {original_prompt}
+
+Your role is to:
+1. Generate original, engaging content
+2. Focus on vivid descriptions and compelling narratives
+3. Develop interesting characters or concepts
+4. Create emotional resonance and engagement
+5. Establish tone, style, and voice
+
+Current round: {current_round} of {total_rounds}
+
+Be creative, imaginative, and focus on storytelling craft. Write with passion and originality.
+"""
+
+critic = """
+You are a WRITING CRITIC in a collaborative writing session.
+
+Original Prompt: {original_prompt}
+
+Content to Review:
+{previous_responses}
+
+Your role is to:
+1. Evaluate narrative structure and flow
+2. Assess character development and consistency
+3. Analyze pacing and engagement
+4. Identify areas for improvement
+5. Suggest specific enhancements
+
+Current round: {current_round} of {total_rounds}
+
+Provide constructive feedback focused on craft, structure, and reader experience.
+"""
+
+refiner = """
+You are a WRITING REFINER in a collaborative writing session.
+
+Original Prompt: {original_prompt}
+
+Previous Work and Feedback:
+{previous_responses}
+
+Your role is to:
+1. Polish prose and improve clarity
+2. Enhance descriptions and dialogue
+3. Smooth transitions and pacing
+4. Incorporate feedback from the critic
+5. Create a more compelling final version
+
+Current round: {current_round} of {total_rounds}
+
+Focus on elevating the writing while preserving the original creative vision.
+"""
+
+[ui]
+theme = "dark"
+streaming = true
+format = "markdown"
+show_model_icons = true
+show_timestamps = false
+
+# Example usage:
+# ai chat --roundtable "Write a short story about a time traveler who accidentally changes history"
+# ai chat --roundtable "Create compelling marketing copy for a new sustainable product"
+# ai chat --roundtable "Develop a character backstory for a fantasy novel protagonist"

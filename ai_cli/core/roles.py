@@ -111,9 +111,19 @@ class RolePromptBuilder:
             template += round_context
 
         # Format the final prompt
-        return template.format(
-            original_prompt=original_prompt, previous_responses=previous_responses
-        )
+        try:
+            return template.format(
+                original_prompt=original_prompt,
+                previous_responses=previous_responses,
+                current_round=current_round,
+                total_rounds=total_rounds,
+            )
+        except KeyError as e:
+            # If template formatting fails, provide a helpful error message
+            raise ValueError(
+                f"Template formatting failed: missing variable {e}. "
+                f"Available variables: original_prompt, previous_responses, current_round, total_rounds"
+            ) from e
 
     def _get_template_for_role(self, role: RoundtableRole) -> str:
         """Get the template for a role, preferring custom over default."""
