@@ -1,6 +1,6 @@
 """Tests for ChatEngine."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -122,11 +122,23 @@ class TestChatEngine:
     @pytest.mark.asyncio
     async def test_run_sequential_round(self, mock_chat_engine, mock_provider):
         """Test running a sequential round."""
+        # Add test models to the configuration
+        from ai_cli.config.models import ModelConfig
+
+        test_model_config = ModelConfig(provider="openai", model="test", api_key="test")
+        mock_chat_engine.config.models["model1"] = test_model_config
+        mock_chat_engine.config.models["model2"] = test_model_config
+
         # Mock the _get_model_response method
         with patch.object(mock_chat_engine, "_get_model_response") as mock_get_response:
             mock_get_response.side_effect = ["Response 1", "Response 2"]
 
-            with patch.object(mock_chat_engine, "_display_single_response"):
+            # Mock the StreamingDisplay class
+            with patch("ai_cli.core.chat.StreamingDisplay") as mock_streaming_display:
+                mock_display_instance = mock_streaming_display.return_value
+                mock_display_instance.update_response = AsyncMock()
+                mock_display_instance.finalize_response = AsyncMock()
+
                 messages = [ChatMessage("user", "Hello")]
                 models = ["model1", "model2"]
 
@@ -143,20 +155,19 @@ class TestChatEngine:
         with patch.object(mock_chat_engine, "_get_model_response") as mock_get_response:
             mock_get_response.side_effect = ["Response 1", "Response 2"]
 
-            with patch.object(mock_chat_engine, "_display_parallel_responses"):
-                # Mock the Progress context manager to avoid Rich complexity
-                with patch("ai_cli.core.chat.Progress") as mock_progress:
-                    mock_progress.return_value.__enter__.return_value.add_task.return_value = "task_id"
+            # Mock the MultiStreamDisplay class
+            with patch("ai_cli.core.chat.MultiStreamDisplay") as mock_multi_display:
+                mock_display_instance = mock_multi_display.return_value
+                mock_display_instance.update_model_response = AsyncMock()
+                mock_display_instance.finalize_all_responses = AsyncMock()
 
-                    messages = [ChatMessage("user", "Hello")]
-                    models = ["model1", "model2"]
+                messages = [ChatMessage("user", "Hello")]
+                models = ["model1", "model2"]
 
-                    responses = await mock_chat_engine._run_parallel_round(
-                        messages, models
-                    )
+                responses = await mock_chat_engine._run_parallel_round(messages, models)
 
-                    assert "model1" in responses
-                    assert "model2" in responses
+                assert "model1" in responses
+                assert "model2" in responses
 
     def test_display_single_response(self, mock_chat_engine):
         """Test displaying a single response."""

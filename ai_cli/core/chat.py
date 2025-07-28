@@ -5,11 +5,10 @@ from rich.columns import Columns
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ..config.models import AIConfig
 from ..providers.factory import ProviderFactory
-from ..ui.streaming import StreamingDisplay
+from ..ui.streaming import MultiStreamDisplay, StreamingDisplay
 from .messages import ChatMessage
 from .roles import RoleAssigner, RolePromptBuilder, RoundtableRole
 
@@ -136,39 +135,41 @@ class ChatEngine:
         models: list[str],
         round_num: int = 1,
     ) -> dict[str, str]:
-        """Run a round with all models responding in parallel."""
-        tasks = []
+        """Run a round with all models responding in parallel with streaming."""
+        # Create multi-stream display for concurrent streaming
+        multi_display = MultiStreamDisplay(self.console)
 
+        # Initialize empty responses for all models in the display
+        for model in models:
+            await multi_display.update_model_response(model, "")
+
+        tasks = []
         for model in models:
             task = asyncio.create_task(
-                self._get_model_response(model, conversation_history)
+                self._get_model_response(
+                    model, conversation_history, multi_stream_display=multi_display
+                )
             )
             tasks.append((model, task))
 
         responses: dict[str, str] = {}
 
-        # Use progress indicator for parallel execution
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=self.console,
-            transient=True,
-        ) as progress:
-            _ = progress.add_task("Getting responses from all models...", total=None)
+        # Wait for all tasks to complete
+        for model, task in tasks:
+            try:
+                response = await asyncio.wait_for(
+                    task, timeout=self.config.roundtable.timeout_seconds
+                )
+                responses[model] = response
+            except asyncio.TimeoutError:
+                responses[model] = f"⚠️ {model} timed out"
+                await multi_display.update_model_response(model, responses[model])
+            except Exception as e:
+                responses[model] = f"❌ {model} error: {str(e)}"
+                await multi_display.update_model_response(model, responses[model])
 
-            for model, task in tasks:
-                try:
-                    response = await asyncio.wait_for(
-                        task, timeout=self.config.roundtable.timeout_seconds
-                    )
-                    responses[model] = response
-                except asyncio.TimeoutError:
-                    responses[model] = f"⚠️ {model} timed out"
-                except Exception as e:
-                    responses[model] = f"❌ {model} error: {str(e)}"
-
-        # Display all responses side by side
-        self._display_parallel_responses(responses)
+        # Finalize the multi-stream display
+        await multi_display.finalize_all_responses()
 
         return responses
 
@@ -246,14 +247,23 @@ class ChatEngine:
                     else:
                         current_messages = conversation_history
 
-                response = await self._get_model_response(model, current_messages)
-                responses[model] = response
-
-                # Display this model's response immediately
+                # Create streaming display for this model
+                model_config = self.config.get_model_config(model)
                 role_info = ""
                 if model in role_assignments:
                     role_info = f" ({role_assignments[model].value.title()})"
-                self._display_single_response(model, response, role_info)
+
+                # Display model info before streaming starts
+                title = f"🤖 {model} ({model_config.provider}){role_info}"
+                self.console.print(f"\n[bold blue]{title}[/bold blue]\n")
+
+                # Create a new streaming display for this model
+                streaming_display = StreamingDisplay(self.console)
+
+                response = await self._get_model_response(
+                    model, current_messages, streaming_display=streaming_display
+                )
+                responses[model] = response
 
             except Exception as e:
                 error_msg = f"❌ Error: {str(e)}"
@@ -263,14 +273,28 @@ class ChatEngine:
         return responses
 
     async def _get_model_response(
-        self, model_name: str, messages: list[ChatMessage]
+        self,
+        model_name: str,
+        messages: list[ChatMessage],
+        streaming_display: Optional[StreamingDisplay] = None,
+        multi_stream_display: Optional[MultiStreamDisplay] = None,
     ) -> str:
-        """Get a response from a specific model."""
+        """Get a response from a specific model, optionally with streaming display."""
         provider = self.provider_factory.get_provider(model_name)
 
         response = ""
         async for chunk in provider.chat_stream(messages):
             response += chunk
+
+            # Update streaming display if provided
+            if streaming_display:
+                await streaming_display.update_response(response, model_name)
+            elif multi_stream_display:
+                await multi_stream_display.update_model_response(model_name, response)
+
+        # Finalize streaming display if provided
+        if streaming_display:
+            await streaming_display.finalize_response()
 
         return response.strip()
 

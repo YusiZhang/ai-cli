@@ -490,7 +490,9 @@ class TestChatEngineRoleBasedRoundtable:
         captured_messages = []
 
         # Mock _get_model_response to capture what messages each model receives
-        async def capture_get_model_response(model_name, messages):
+        async def capture_get_model_response(
+            model_name, messages, streaming_display=None, multi_stream_display=None
+        ):
             captured_messages.append({"model": model_name, "messages": messages})
             # Return different responses for each model
             if model_name == "openai/gpt-4":
@@ -500,15 +502,21 @@ class TestChatEngineRoleBasedRoundtable:
 
         mock_chat_engine._get_model_response = capture_get_model_response
 
-        # Run sequential round
-        await mock_chat_engine._run_sequential_round(
-            conversation_history,
-            ["openai/gpt-4", "anthropic/claude-3-5-sonnet"],
-            round_num=1,
-        )
+        # Mock StreamingDisplay to avoid Rich complexity
+        with patch("ai_cli.core.chat.StreamingDisplay") as mock_streaming_display:
+            mock_display_instance = mock_streaming_display.return_value
+            mock_display_instance.update_response = AsyncMock()
+            mock_display_instance.finalize_response = AsyncMock()
 
-        # Verify we captured messages for both models
-        assert len(captured_messages) == 2
+            # Run sequential round
+            await mock_chat_engine._run_sequential_round(
+                conversation_history,
+                ["openai/gpt-4", "anthropic/claude-3-5-sonnet"],
+                round_num=1,
+            )
+
+            # Verify we captured messages for both models
+            assert len(captured_messages) == 2
 
         # First model (Generator) should not see any previous responses (empty round)
         generator_message = captured_messages[0]
