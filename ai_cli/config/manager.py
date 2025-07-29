@@ -59,7 +59,6 @@ class ConfigManager:
             "roundtable": {
                 "enabled_models": config.roundtable.enabled_models,
                 "discussion_rounds": config.roundtable.discussion_rounds,
-                "critique_mode": config.roundtable.critique_mode,
                 "parallel_responses": config.roundtable.parallel_responses,
                 "timeout_seconds": config.roundtable.timeout_seconds,
                 "use_role_based_prompting": config.roundtable.use_role_based_prompting,

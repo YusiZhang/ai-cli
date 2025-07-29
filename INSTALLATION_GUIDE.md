@@ -329,7 +329,6 @@ max_tokens = 4000
 [roundtable]
 enabled_models = ["openai/gpt-4", "anthropic/claude-3-sonnet"]
 discussion_rounds = 2
-critique_mode = true
 parallel_responses = false
 
 [ui]

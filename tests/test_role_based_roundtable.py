@@ -237,7 +237,7 @@ class TestRoleAssigner:
             role_rotation=True,
         )
 
-        # Try to assign evaluator to model1 (should fall back to generator)
+        # Try to assign evaluator to model1 (should allow it for template fallback)
         test_assignments = {
             "model1": RoundtableRole.EVALUATOR,
             "model2": RoundtableRole.CRITIC,
@@ -245,8 +245,8 @@ class TestRoleAssigner:
         validated = assigner._validate_assignments(test_assignments)
 
         assert (
-            validated["model1"] == RoundtableRole.GENERATOR
-        )  # Fell back to allowed role
+            validated["model1"] == RoundtableRole.EVALUATOR
+        )  # Allowed for template fallback
         assert validated["model2"] == RoundtableRole.CRITIC  # Allowed role
 
     def test_get_role_for_model_in_round(self):
@@ -356,6 +356,166 @@ class TestRoundTableConfig:
         # Non-existent template
         template = config.get_role_template(RoundtableRole.CRITIC)
         assert template is None
+
+    def test_mixed_custom_and_default_templates(self):
+        """Test behavior with partial custom templates (some roles custom, others default)."""
+        # Create config with custom templates for only some roles
+        custom_templates = {
+            RoundtableRole.GENERATOR: "Custom generator: {original_prompt}",
+            RoundtableRole.CRITIC: "Custom critic: {previous_responses}",
+            # Leave REFINER and EVALUATOR to use defaults
+        }
+
+        builder = RolePromptBuilder(custom_templates=custom_templates)
+        original_prompt = "Test prompt"
+        history = []
+
+        # Test that custom templates are used when available
+        generator_prompt = builder.build_role_prompt(
+            RoundtableRole.GENERATOR, original_prompt, history
+        )
+        assert "Custom generator: Test prompt" in generator_prompt
+
+        critic_prompt = builder.build_role_prompt(
+            RoundtableRole.CRITIC, original_prompt, history
+        )
+        assert "Custom critic:" in critic_prompt
+
+        # Test that default templates are used when custom not available
+        refiner_prompt = builder.build_role_prompt(
+            RoundtableRole.REFINER, original_prompt, history
+        )
+        # Should contain default template content
+        assert "REFINER" in refiner_prompt
+        assert "refine" in refiner_prompt.lower()
+        assert "Custom" not in refiner_prompt
+
+        evaluator_prompt = builder.build_role_prompt(
+            RoundtableRole.EVALUATOR, original_prompt, history
+        )
+        # Should contain default template content
+        assert "EVALUATOR" in evaluator_prompt
+        assert "evaluate" in evaluator_prompt.lower()
+        assert "Custom" not in evaluator_prompt
+
+    def test_role_assignment_with_mixed_templates(self):
+        """Test role assignments work correctly with mixed custom/default templates."""
+        # Set up config with role assignments and partial custom templates
+        config = RoundTableConfig()
+        config.role_assignments = {
+            "gpt-4": [RoundtableRole.GENERATOR, RoundtableRole.REFINER],
+            "claude": [RoundtableRole.CRITIC, RoundtableRole.EVALUATOR],
+        }
+        config.custom_role_templates = {
+            RoundtableRole.GENERATOR: "Custom generator for {original_prompt}",
+            # Leave other roles to use defaults
+        }
+
+        # Test that models can be assigned roles even if no custom template exists
+        assert config.can_model_play_role("gpt-4", RoundtableRole.GENERATOR)
+        assert config.can_model_play_role("gpt-4", RoundtableRole.REFINER)
+        assert config.can_model_play_role("claude", RoundtableRole.CRITIC)
+        assert config.can_model_play_role("claude", RoundtableRole.EVALUATOR)
+
+        # Test template retrieval
+        assert (
+            config.get_role_template(RoundtableRole.GENERATOR)
+            == "Custom generator for {original_prompt}"
+        )
+        assert config.get_role_template(RoundtableRole.REFINER) is None  # Uses default
+        assert config.get_role_template(RoundtableRole.CRITIC) is None  # Uses default
+        assert (
+            config.get_role_template(RoundtableRole.EVALUATOR) is None
+        )  # Uses default
+
+    def test_template_validation_warnings(self):
+        """Test that template validation warns about issues."""
+        from unittest.mock import patch
+
+        # Create a custom template with missing required variable
+        custom_templates = {
+            RoundtableRole.GENERATOR: "This template has no original_prompt variable"
+        }
+
+        builder = RolePromptBuilder(custom_templates=custom_templates)
+
+        with patch("ai_cli.core.roles.logger") as mock_logger:
+            # This should trigger a warning about missing original_prompt
+            builder.build_role_prompt(RoundtableRole.GENERATOR, "test", [])
+
+            # Check that a warning was logged
+            mock_logger.warning.assert_called()
+            warning_calls = [
+                call
+                for call in mock_logger.warning.call_args_list
+                if "original_prompt" in str(call)
+            ]
+            assert len(warning_calls) > 0
+
+    def test_template_with_unexpected_variables(self):
+        """Test custom template with unexpected variables."""
+        from unittest.mock import patch
+
+        # Create a custom template with unexpected variable
+        custom_templates = {
+            RoundtableRole.GENERATOR: "Generator: {original_prompt} and {unexpected_var}"
+        }
+
+        builder = RolePromptBuilder(custom_templates=custom_templates)
+
+        with patch("ai_cli.core.roles.logger") as mock_logger:
+            # This should trigger a warning about unexpected variable and then fail
+            with pytest.raises(
+                ValueError,
+                match="Template formatting failed.*missing variable.*unexpected_var",
+            ):
+                builder.build_role_prompt(RoundtableRole.GENERATOR, "test", [])
+
+            # Check that a warning was logged about unexpected variables
+            mock_logger.warning.assert_called()
+            warning_calls = [
+                call
+                for call in mock_logger.warning.call_args_list
+                if "unexpected" in str(call)
+            ]
+            assert len(warning_calls) > 0
+
+    def test_config_manager_template_operations(self):
+        """Test configuration manager template operations."""
+        from ai_cli.config.manager import ConfigManager
+
+        # Create config manager (uses default config path)
+        config_manager = ConfigManager()
+
+        # Test template operations
+        test_template = "Test template: {original_prompt}"
+
+        # Set custom template for evaluator (unlikely to already exist)
+        config_manager.set_custom_role_template(RoundtableRole.EVALUATOR, test_template)
+
+        # Verify it was set
+        templates = config_manager.get_custom_role_templates()
+        assert RoundtableRole.EVALUATOR in templates
+        assert templates[RoundtableRole.EVALUATOR] == test_template
+
+        # Update the template
+        updated_template = (
+            "Updated test template: {original_prompt} and {previous_responses}"
+        )
+        config_manager.set_custom_role_template(
+            RoundtableRole.EVALUATOR, updated_template
+        )
+
+        # Verify it was updated
+        templates = config_manager.get_custom_role_templates()
+        assert templates[RoundtableRole.EVALUATOR] == updated_template
+
+        # Remove the template
+        config_manager.remove_custom_role_template(RoundtableRole.EVALUATOR)
+
+        # Verify it was removed
+        templates = config_manager.get_custom_role_templates()
+        assert RoundtableRole.EVALUATOR not in templates
 
 
 @pytest.mark.asyncio

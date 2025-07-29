@@ -189,7 +189,7 @@ class ChatEngine:
                 round_num, self.config.roundtable.discussion_rounds
             )
 
-        for i, model in enumerate(models):
+        for model in models:
             try:
                 # Determine what messages to send to this model
                 if (
@@ -200,6 +200,8 @@ class ChatEngine:
                     role = role_assignments[model]
 
                     # Build enhanced conversation history that includes current round responses
+                    # This is needed for example the CRITIC role to see previous responses within the same round
+                    # from the generator role
                     enhanced_history = conversation_history[
                         1:
                     ].copy()  # Previous rounds (exclude original user prompt)
@@ -234,18 +236,8 @@ class ChatEngine:
                     )
 
                 else:
-                    # Fall back to traditional critique mode
-                    if i > 0 and self.config.roundtable.critique_mode:
-                        # Add previous model responses to the conversation
-                        current_messages = conversation_history.copy()
-                        for prev_model, prev_response in list(responses.items()):
-                            current_messages.append(
-                                ChatMessage(
-                                    "assistant", prev_response, {"model": prev_model}
-                                )
-                            )
-                    else:
-                        current_messages = conversation_history
+                    # Fall back to basic conversation history (non-role-based mode)
+                    current_messages = conversation_history
 
                 # Create streaming display for this model
                 model_config = self.config.get_model_config(model)

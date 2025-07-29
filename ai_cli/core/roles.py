@@ -1,9 +1,12 @@
 """Role-based prompting system for roundtable discussions."""
 
+import logging
 from enum import Enum
 from typing import Optional
 
 from .messages import ChatMessage
+
+logger = logging.getLogger(__name__)
 
 
 class RoundtableRole(Enum):
@@ -100,6 +103,10 @@ class RolePromptBuilder:
         # Get the appropriate template (custom or default)
         template = self._get_template_for_role(role)
 
+        # Validate template variables before formatting
+        is_custom = role in self.custom_templates
+        self._validate_template_variables(template, role, is_custom)
+
         # Format previous responses based on role requirements
         previous_responses = self._format_previous_responses(
             role, conversation_history, original_prompt
@@ -112,23 +119,66 @@ class RolePromptBuilder:
 
         # Format the final prompt
         try:
-            return template.format(
+            formatted_prompt = template.format(
                 original_prompt=original_prompt,
                 previous_responses=previous_responses,
                 current_round=current_round,
                 total_rounds=total_rounds,
             )
+
+            logger.debug(
+                f"Successfully built role prompt for {role.value} ({'custom' if is_custom else 'default'} template)"
+            )
+            return formatted_prompt
+
         except KeyError as e:
             # If template formatting fails, provide a helpful error message
+            template_type = "custom" if is_custom else "default"
             raise ValueError(
-                f"Template formatting failed: missing variable {e}. "
+                f"Template formatting failed for {template_type} {role.value} template: missing variable {e}. "
                 f"Available variables: original_prompt, previous_responses, current_round, total_rounds"
             ) from e
+
+    def _validate_template_variables(
+        self, template: str, role: RoundtableRole, is_custom: bool
+    ) -> None:
+        """Validate that template contains expected variables and warn about issues."""
+        import re
+
+        # Find all format variables in the template
+        format_vars = re.findall(r"\{(\w+)\}", template)
+        expected_vars = {
+            "original_prompt",
+            "previous_responses",
+            "current_round",
+            "total_rounds",
+        }
+        found_vars = set(format_vars)
+
+        # Check for unexpected variables
+        unexpected_vars = found_vars - expected_vars
+        if unexpected_vars and is_custom:
+            logger.warning(
+                f"Custom template for {role.value} contains unexpected variables: {unexpected_vars}. "
+                f"Available variables: {expected_vars}"
+            )
+
+        # Check for missing essential variables (original_prompt is always needed)
+        if "original_prompt" not in found_vars:
+            template_type = "custom" if is_custom else "default"
+            logger.warning(
+                f"{template_type.title()} template for {role.value} does not contain 'original_prompt' variable"
+            )
 
     def _get_template_for_role(self, role: RoundtableRole) -> str:
         """Get the template for a role, preferring custom over default."""
         if role in self.custom_templates:
+            logger.debug(f"Using custom template for role {role.value}")
             return self.custom_templates[role]
+
+        logger.debug(
+            f"Using default template for role {role.value} (no custom template found)"
+        )
         return RolePromptTemplates.get_template(role)
 
     def _format_previous_responses(
@@ -302,24 +352,40 @@ class RoleAssigner:
     def _validate_assignments(
         self, assignments: dict[str, RoundtableRole]
     ) -> dict[str, RoundtableRole]:
-        """Validate and adjust role assignments based on model capabilities."""
+        """Validate and adjust role assignments based on model capabilities.
+
+        When role-based prompting is used, we prefer to honor the intended role
+        assignments and let the template system handle fallback to default templates.
+        Role assignments should be treated as preferences rather than hard restrictions
+        unless the model has very specific limitations.
+        """
         validated = {}
 
         for model, role in assignments.items():
-            if model in self.role_assignments:
+            if model in self.role_assignments and self.role_assignments[model]:
                 available_roles = self.role_assignments[model]
                 if role in available_roles:
+                    # Model can play the assigned role
                     validated[model] = role
+                    logger.debug(
+                        f"Model {model} assigned to preferred role {role.value}"
+                    )
                 else:
-                    # Fall back to first available role
-                    validated[model] = (
-                        available_roles[0]
-                        if available_roles
-                        else RoundtableRole.GENERATOR
+                    # Model has role restrictions but can't play assigned role
+                    # In role-based prompting, we want to allow more flexibility
+                    # to enable template fallback, so we'll use the assigned role anyway
+                    # and rely on the template system to handle missing custom templates
+                    validated[model] = role
+                    logger.debug(
+                        f"Model {model} assigned to role {role.value} (outside preferences {[r.value for r in available_roles]}) "
+                        f"- template fallback will handle default prompts"
                     )
             else:
                 # No restrictions - use assigned role
                 validated[model] = role
+                logger.debug(
+                    f"No role restrictions for {model}, using assigned role {role.value}"
+                )
 
         return validated
 

@@ -24,6 +24,7 @@ This directory contains example configurations demonstrating different roundtabl
 - [`research-analysis.toml`](./research-analysis.toml) - Research methodology with multiple perspectives
 - [`problem-solving.toml`](./problem-solving.toml) - Structured problem-solving approach
 - [`debate-format.toml`](./debate-format.toml) - Formal debate structure
+- [`mixed-templates.toml`](./mixed-templates.toml) - Demonstrates mixed custom/default template usage
 
 ## Model Requirements
 
@@ -41,6 +42,56 @@ Adjust model names according to your specific configuration.
 2. **Discussion Rounds**: Adjust the number of rounds for your use case
 3. **Custom Templates**: Add custom role templates for domain-specific prompting
 4. **Timeout Settings**: Increase timeout for complex discussions
+
+## Template Fallback Behavior
+
+The AI CLI supports **mixed template configurations** where you can provide custom templates for some roles while others automatically use built-in defaults:
+
+### Example: Partial Custom Templates
+```toml
+[roundtable.role_assignments]
+"gpt-4" = ["generator", "refiner"]
+"claude" = ["critic", "evaluator"]
+
+[roundtable.custom_role_templates]
+generator = "Custom generator template..."
+critic = "Custom critic template..."
+# refiner and evaluator will use default templates
+```
+
+In this example:
+- **Generator** and **Critic** use your custom templates
+- **Refiner** and **Evaluator** automatically fall back to built-in default templates
+- All four roles work seamlessly together in discussions
+
+### Benefits
+- **Flexibility**: Customize only the roles you care about most
+- **Gradual adoption**: Start with default templates and customize incrementally
+- **No gaps**: Declared roles always work, even without custom templates
+- **Consistency**: Default templates provide reliable baseline behavior
+
+See `mixed-templates.toml` for a complete working example.
+
+### Managing Templates via CLI
+
+You can manage custom role templates using the CLI:
+
+```bash
+# List all custom templates
+ai config templates --list
+
+# Show default templates for all roles
+ai config templates --show-defaults
+
+# Set custom template for a role
+ai config templates --role generator --set "Your custom template..."
+
+# Load template from file
+ai config templates --role critic --file my-template.txt
+
+# Clear custom template (falls back to default)
+ai config templates --clear refiner
+```
 
 ## Contributing
 

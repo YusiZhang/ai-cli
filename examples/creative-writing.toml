@@ -6,7 +6,6 @@ default_model = "anthropic/claude-3-5-sonnet"
 [roundtable]
 enabled_models = ["anthropic/claude-3-5-sonnet", "openai/gpt-4", "gemini"]
 discussion_rounds = 3
-critique_mode = true
 parallel_responses = false
 timeout_seconds = 60
 use_role_based_prompting = true

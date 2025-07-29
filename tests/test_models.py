@@ -57,7 +57,6 @@ class TestRoundTableConfig:
 
         assert config.enabled_models == []
         assert config.discussion_rounds == 2
-        assert config.critique_mode is True
         assert config.parallel_responses is False
         assert config.timeout_seconds == 30
 
@@ -66,14 +65,12 @@ class TestRoundTableConfig:
         config = RoundTableConfig(
             enabled_models=["model1", "model2"],
             discussion_rounds=3,
-            critique_mode=False,
             parallel_responses=True,
             timeout_seconds=60,
         )
 
         assert config.enabled_models == ["model1", "model2"]
         assert config.discussion_rounds == 3
-        assert config.critique_mode is False
         assert config.parallel_responses is True
         assert config.timeout_seconds == 60
 

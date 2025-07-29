@@ -32,7 +32,6 @@ class RoundTableConfig(BaseModel):
 
     enabled_models: list[str] = []
     discussion_rounds: int = 2
-    critique_mode: bool = True
     parallel_responses: bool = False
     timeout_seconds: int = 30
 
@@ -42,6 +41,51 @@ class RoundTableConfig(BaseModel):
     role_rotation: bool = True
     preserve_original_context: bool = True
     custom_role_templates: dict[RoundtableRole, str] = {}
+
+    @field_validator("role_assignments", mode="before")
+    @classmethod
+    def convert_role_assignment_strings(cls, v: Any) -> dict[str, list[RoundtableRole]]:
+        """Convert string role values to RoundtableRole enum values."""
+        if not isinstance(v, dict):
+            return {}
+
+        result = {}
+        for model, roles in v.items():
+            if isinstance(roles, list):
+                converted_roles = []
+                for role in roles:
+                    if isinstance(role, str):
+                        try:
+                            converted_roles.append(RoundtableRole(role))
+                        except ValueError:
+                            # Invalid role string, skip it
+                            continue
+                    elif isinstance(role, RoundtableRole):
+                        converted_roles.append(role)
+                result[model] = converted_roles
+            else:
+                result[model] = roles
+        return result
+
+    @field_validator("custom_role_templates", mode="before")
+    @classmethod
+    def convert_role_template_keys(cls, v: Any) -> dict[RoundtableRole, str]:
+        """Convert string keys to RoundtableRole enum keys."""
+        if not isinstance(v, dict):
+            return {}
+
+        result = {}
+        for key, template in v.items():
+            if isinstance(key, str):
+                try:
+                    role_key = RoundtableRole(key)
+                    result[role_key] = template
+                except ValueError:
+                    # Invalid role string, skip it
+                    continue
+            elif isinstance(key, RoundtableRole):
+                result[key] = template
+        return result
 
     def get_available_roles_for_model(self, model_name: str) -> list[RoundtableRole]:
         """Get the roles that a specific model can play."""

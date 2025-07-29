@@ -6,10 +6,9 @@ default_model = "openai/gpt-4"
 [roundtable]
 enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet"]
 discussion_rounds = 2
-critique_mode = true
 parallel_responses = false
 timeout_seconds = 30
-use_role_based_prompting = false
+use_role_based_prompting = true
 role_rotation = true
 preserve_original_context = true
 

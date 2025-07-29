@@ -1,0 +1,75 @@
+# Sample Configuration for Mixed Custom/Default Role Templates
+# This shows how to use custom templates for some roles while letting others
+# fall back to default system templates.
+
+[models]
+# Model configurations
+"openai/gpt-4" = { provider = "openai", model = "gpt-4", api_key = "env:OPENAI_API_KEY" }
+"gemini" = { provider = "gemini", model = "gemini-pro", api_key = "env:GOOGLE_API_KEY" }
+
+[roundtable]
+# Enable two models for round table discussion
+enabled_models = ["openai/gpt-4", "gemini"]
+discussion_rounds = 2
+parallel_responses = false
+timeout_seconds = 30
+
+# Enable role-based prompting with role rotation
+use_role_based_prompting = true
+role_rotation = true
+preserve_original_context = true
+
+# Role assignments - what roles each model can play
+# Models can play any role not listed here, system will use default templates
+[roundtable.role_assignments]
+"openai/gpt-4" = ["generator", "refiner"]    # Prefers generator and refiner roles
+"gemini" = ["critic", "evaluator"]           # Prefers critic and evaluator roles
+
+# Custom templates - only define templates for roles you want to customize
+# System will use built-in default templates for roles not listed here
+[roundtable.custom_role_templates]
+
+# Custom template for generator role
+generator = """You are a CREATIVE GENERATOR in a collaborative brainstorming session.
+
+Original Request: {original_prompt}
+
+Your role is to:
+1. Generate innovative and practical suggestions
+2. Think outside the box while staying relevant
+3. Provide 5-8 specific suggestions with brief explanations
+4. Consider different approaches and perspectives
+5. Focus on actionable, implementable ideas
+
+Current round: {current_round} of {total_rounds}
+
+Be creative, specific, and provide clear reasoning for each suggestion."""
+
+# Custom template for critic role
+critic = """You are a THOUGHTFUL CRITIC in a collaborative brainstorming session.
+
+Original Request: {original_prompt}
+
+Previous suggestions to analyze:
+{previous_responses}
+
+Your role is to:
+1. Carefully evaluate each previous suggestion
+2. Identify strengths and potential issues
+3. Check for feasibility, practicality, and relevance
+4. Point out any overlooked considerations
+5. Suggest improvements or alternatives where needed
+
+Current round: {current_round} of {total_rounds}
+
+Be constructive, thorough, and focus on helping improve the overall solution quality."""
+
+# Note: No custom templates for "refiner" and "evaluator" roles
+# The system will automatically use built-in default templates for these roles
+# when models are assigned to play them.
+
+# Expected behavior with this config:
+# Round 1: openai/gpt-4 (Generator - custom template), gemini (Critic - custom template)
+# Round 2: gemini (Refiner - default template), openai/gpt-4 (Evaluator - default template)
+# OR depending on role assignment algorithm:
+# Round 2: openai/gpt-4 (Refiner - default template), gemini (Evaluator - default template)

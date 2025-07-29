@@ -1,5 +1,9 @@
 # AI CLI Project Documentation
 
+## Do and DON'ts
+1. DO NOT modify ~/.ai-cli/config.toml file unless you asked me for permission
+2. DO run `uv run pre-commit` before you wrap up your task
+
 ## Project Overview
 
 This is a multi-model AI CLI tool that provides three main interaction modes:
@@ -65,8 +69,8 @@ The CLI comes pre-configured with these models:
 - **Ollama Llama2**: `ollama/llama2` (local)
 
 ### Configuration Location
-- Config file: `~/.ai-cli/config.toml`
-- Environment file: `~/.ai-cli/.env` or current directory `.env`
+- User config file: `~/.ai-cli/config.toml`
+- User environment file: `~/.ai-cli/.env` or current directory `.env`
 
 ### API Key Setup
 API keys are referenced via environment variables:
@@ -271,16 +275,8 @@ export AI_CLI_DEBUG=1
 
 ## Future Enhancements
 
-### Phase 2 Features (Planned)
-- Conversation persistence and session management
-- Advanced round-table modes (debate, expert panels)
-- Performance optimizations with connection pooling
-- Enhanced error handling with retry logic
-- PyPI package distribution
-
 ### Potential Extensions
 - Web interface for non-terminal users
 - Plugin system for custom providers
 - Conversation templates and workflows
 - Integration with external tools and APIs
-- Multi-language support

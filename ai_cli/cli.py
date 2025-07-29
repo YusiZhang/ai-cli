@@ -8,7 +8,7 @@ from rich.panel import Panel
 
 from .config.manager import ConfigManager
 from .core.chat import ChatEngine
-from .core.roles import RoundtableRole
+from .core.roles import RolePromptTemplates, RoundtableRole
 from .ui.interactive import InteractiveSession
 from .utils.env import env_manager
 
@@ -153,7 +153,7 @@ def config_set(
                 converted_value = float(value)
             elif setting in ["max_tokens", "context_window"]:
                 converted_value = int(value)
-            elif setting in ["streaming", "critique_mode", "parallel_responses"]:
+            elif setting in ["streaming", "parallel_responses"]:
                 converted_value = value.lower() in ["true", "1", "yes", "on"]
             else:
                 converted_value = value
@@ -380,6 +380,125 @@ def _get_role_description(role: RoundtableRole) -> str:
         RoundtableRole.EVALUATOR: "Evaluates final outcomes and provides summaries",
     }
     return descriptions.get(role, "No description available")
+
+
+@config_app.command("templates")
+def config_templates(
+    role: Optional[str] = typer.Option(
+        None, "--role", "-r", help="Role to configure template for"
+    ),
+    set_template: Optional[str] = typer.Option(
+        None, "--set", "-s", help="Set custom template for role"
+    ),
+    file: Optional[str] = typer.Option(
+        None, "--file", "-f", help="Load template from file"
+    ),
+    clear: Optional[str] = typer.Option(
+        None, "--clear", "-c", help="Clear custom template for role"
+    ),
+    list_templates: bool = typer.Option(
+        False, "--list", "-l", help="List all custom templates"
+    ),
+    show_defaults: bool = typer.Option(
+        False, "--show-defaults", help="Show default templates for all roles"
+    ),
+) -> None:
+    """Manage custom role templates for roundtable discussions."""
+    try:
+        if show_defaults:
+            console.print("\n[bold blue]🎭 Default Role Templates[/bold blue]\n")
+            for role_enum in RoundtableRole:
+                template = RolePromptTemplates.get_template(role_enum)
+                console.print(f"[cyan]{role_enum.value.title()}:[/cyan]")
+                console.print(f"[dim]{template}[/dim]\n")
+        elif list_templates:
+            templates = config_manager.get_custom_role_templates()
+            console.print("\n[bold blue]🎭 Custom Role Templates[/bold blue]\n")
+            if templates:
+                for role_enum, template in templates.items():
+                    preview = (
+                        template[:100] + "..." if len(template) > 100 else template
+                    )
+                    console.print(f"[cyan]{role_enum.value.title()}:[/cyan]")
+                    console.print(f"[dim]{preview}[/dim]\n")
+                console.print(
+                    "[dim]Note: Other roles use default templates unless customized[/dim]"
+                )
+            else:
+                console.print("[dim]No custom templates configured[/dim]")
+                console.print("[dim]All roles use default templates[/dim]")
+            console.print()
+        elif role and set_template:
+            # Parse role name
+            try:
+                role_enum = RoundtableRole(role.lower())
+            except ValueError as err:
+                console.print(
+                    f"[red]Error: Invalid role '{role}'. Available roles: {', '.join([r.value for r in RoundtableRole])}[/red]"
+                )
+                raise typer.Exit(1) from err
+
+            config_manager.set_custom_role_template(role_enum, set_template)
+            console.print(
+                f"[green]✓ Set custom template for {role_enum.value.title()}[/green]"
+            )
+        elif role and file:
+            # Parse role name
+            try:
+                role_enum = RoundtableRole(role.lower())
+            except ValueError as err:
+                console.print(
+                    f"[red]Error: Invalid role '{role}'. Available roles: {', '.join([r.value for r in RoundtableRole])}[/red]"
+                )
+                raise typer.Exit(1) from err
+
+            # Load template from file
+            try:
+                template_path = Path(file)
+                if not template_path.exists():
+                    console.print(f"[red]Error: Template file '{file}' not found[/red]")
+                    raise typer.Exit(1)
+
+                template_content = template_path.read_text(encoding="utf-8")
+                config_manager.set_custom_role_template(role_enum, template_content)
+                console.print(
+                    f"[green]✓ Loaded custom template for {role_enum.value.title()} from {file}[/green]"
+                )
+            except Exception as e:
+                console.print(f"[red]Error reading template file: {e}[/red]")
+                raise typer.Exit(1) from e
+        elif clear:
+            # Parse role name
+            try:
+                role_enum = RoundtableRole(clear.lower())
+            except ValueError as err:
+                console.print(
+                    f"[red]Error: Invalid role '{clear}'. Available roles: {', '.join([r.value for r in RoundtableRole])}[/red]"
+                )
+                raise typer.Exit(1) from err
+
+            config_manager.remove_custom_role_template(role_enum)
+            console.print(
+                f"[green]✓ Cleared custom template for {role_enum.value.title()} (will use default)[/green]"
+            )
+        else:
+            console.print(
+                "[yellow]Please specify an option (--list, --show-defaults, --role with --set/--file, or --clear)[/yellow]"
+            )
+            console.print("[dim]Examples:[/dim]")
+            console.print("[dim]  ai config templates --list[/dim]")
+            console.print("[dim]  ai config templates --show-defaults[/dim]")
+            console.print(
+                '[dim]  ai config templates --role generator --set "Custom template..."[/dim]'
+            )
+            console.print(
+                "[dim]  ai config templates --role critic --file template.txt[/dim]"
+            )
+            console.print("[dim]  ai config templates --clear refiner[/dim]")
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1) from e
 
 
 @config_app.command("env")

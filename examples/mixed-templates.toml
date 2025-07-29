@@ -1,0 +1,70 @@
+# Example configuration showing mixed custom and default templates
+# This demonstrates the fallback behavior where some roles have custom templates
+# while others use the built-in defaults
+
+# Basic roundtable configuration
+[roundtable]
+enabled_models = ["openai/gpt-4", "gemini"]
+discussion_rounds = 3
+use_role_based_prompting = true
+role_rotation = true
+
+# Role assignments - all roles declared here will be used
+# even if not all have custom templates
+[roundtable.role_assignments]
+"openai/gpt-4" = ["generator", "refiner"]
+"gemini" = ["critic", "evaluator"]
+
+# Custom templates - only provided for some roles
+# Roles without custom templates will automatically use defaults
+[roundtable.custom_role_templates]
+
+generator = """You are participating in a roundtable discussion as a CUSTOM GENERATOR.
+
+Original request: {original_prompt}
+
+Your task: Generate innovative and practical solutions based on the user's request. Think outside the box while remaining grounded in feasibility. Provide 3-5 distinct approaches with clear rationale for each.
+
+Focus on:
+- Creativity and originality
+- Practical implementation
+- Clear benefits and potential challenges
+
+Please structure your response with numbered suggestions and explanations."""
+
+critic = """You are participating in a roundtable discussion as a CUSTOM CRITIC.
+
+Original request: {original_prompt}
+
+Previous suggestions to analyze:
+{previous_responses}
+
+Your task: Provide constructive but thorough critique of the previous suggestions. Look for:
+- Logical flaws or gaps in reasoning
+- Practical implementation challenges
+- Missing considerations or edge cases
+- Potential improvements or alternatives
+
+Structure your response as:
+1. Overall assessment of the suggestions
+2. Specific critiques with explanations
+3. Your recommended improvements or alternatives"""
+
+# Note: 'refiner' and 'evaluator' roles are not defined here
+# They will automatically use the default templates when assigned
+# This demonstrates the mixed template fallback behavior
+
+# Model configurations
+[models."openai/gpt-4"]
+provider = "openai"
+model = "gpt-4"
+api_key = "env:OPENAI_API_KEY"
+temperature = 0.7
+max_tokens = 4000
+
+[models."gemini"]
+provider = "gemini"
+model = "gemini-2.5-flash"
+api_key = "env:GEMINI_API_KEY"
+temperature = 0.7
+max_tokens = 4000

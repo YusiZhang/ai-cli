@@ -48,9 +48,7 @@ def sample_ai_config(sample_model_config):
     return AIConfig(
         default_model="test-model",
         models={"test-model": sample_model_config},
-        roundtable=RoundTableConfig(
-            enabled_models=["test-model"], discussion_rounds=2, critique_mode=True
-        ),
+        roundtable=RoundTableConfig(enabled_models=["test-model"], discussion_rounds=2),
         ui=UIConfig(theme="dark", streaming=True, format="markdown"),
     )
 
