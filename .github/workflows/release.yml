@@ -37,6 +37,9 @@ jobs:
     - name: Lint with ruff
       run: uv run ruff check src/ai_cli/
 
+    - name: Format check with ruff
+      run: uv run ruff format --check src/ai_cli/
+
     - name: Type check with mypy
       run: uv run mypy src/ai_cli/
 

@@ -26,9 +26,9 @@ class ChatEngine:
         self.role_prompt_builder = RolePromptBuilder(
             custom_templates=config.roundtable.custom_role_templates
         )
-        self.role_assigner: Optional[
-            RoleAssigner
-        ] = None  # Will be initialized when needed
+        self.role_assigner: Optional[RoleAssigner] = (
+            None  # Will be initialized when needed
+        )
 
     async def single_chat(self, prompt: str, model_name: str) -> None:
         """Handle a single model chat."""

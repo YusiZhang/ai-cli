@@ -187,9 +187,9 @@ uv run pytest
 uv run pytest --cov=ai_cli
 
 # Run linting
-uv run ruff check ai_cli/
-uv run black ai_cli/
-uv run mypy ai_cli/
+uv run ruff check src/ai_cli/
+uv run ruff format src/ai_cli/
+uv run mypy src/ai_cli/
 ```
 
 ### Pre-commit Hooks

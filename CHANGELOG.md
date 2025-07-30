@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Quality Assurance**:
   - 69 comprehensive tests covering all core functionality
-  - Pre-commit hooks with ruff, black, and mypy
+  - Pre-commit hooks with ruff (linting and formatting) and mypy
   - Type-safe codebase with strict mypy configuration
   - 80%+ test coverage
 
