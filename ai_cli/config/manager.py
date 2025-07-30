@@ -93,12 +93,18 @@ class ConfigManager:
             }
             # Handle API key storage - save env: references, not resolved keys
             if model_config.api_key:
-                # If it looks like a resolved API key, don't save it
-                if (
+                # If it looks like a resolved API key or placeholder, convert to env reference
+                is_resolved_key = (
                     model_config.api_key.startswith("sk-")
                     or model_config.api_key.startswith("AIzaSy")
                     or len(model_config.api_key) > 50
-                ):
+                )
+                is_placeholder = (
+                    "your-" in model_config.api_key.lower()
+                    and "-key-here" in model_config.api_key.lower()
+                )
+
+                if is_resolved_key or is_placeholder:
                     # Try to determine the original env reference
                     if name == "openai/gpt-4" or "openai" in model_config.provider:
                         model_dict["api_key"] = "env:OPENAI_API_KEY"
@@ -107,8 +113,11 @@ class ConfigManager:
                         or "anthropic" in model_config.provider
                     ):
                         model_dict["api_key"] = "env:ANTHROPIC_API_KEY"
-                    elif "gemini" in model_config.provider:
-                        model_dict["api_key"] = "env:GOOGLE_API_KEY"
+                    elif (
+                        "gemini" in model_config.provider
+                        or "google" in model_config.provider
+                    ):
+                        model_dict["api_key"] = "env:GEMINI_API_KEY"
                 else:
                     # It's likely an env: reference, keep it as is
                     model_dict["api_key"] = model_config.api_key
@@ -165,6 +174,80 @@ class ConfigManager:
         if model_name in config.roundtable.enabled_models:
             config.roundtable.enabled_models.remove(model_name)
             self.save_config(config)
+
+    def create_default_config(self, minimal: bool = False) -> Path:
+        """Create a default configuration file for first-time setup.
+
+        Args:
+            minimal: If True, create a minimal config with basic settings only
+
+        Returns:
+            Path to the created configuration file
+        """
+        # Create a default AIConfig
+        if minimal:
+            # Minimal config with just OpenAI GPT-4
+            # Use direct dict creation to bypass ensure_default_models validator
+            config_dict = {
+                "default_model": "openai/gpt-4",
+                "models": {
+                    "openai/gpt-4": {
+                        "provider": "openai",
+                        "model": "gpt-4",
+                        "api_key": "env:OPENAI_API_KEY",
+                    }
+                },
+                "roundtable": {
+                    "enabled_models": [],
+                    "discussion_rounds": 2,
+                    "parallel_responses": False,
+                    "timeout_seconds": 30,
+                    "use_role_based_prompting": True,
+                    "role_rotation": True,
+                    "preserve_original_context": True,
+                    "role_assignments": {},
+                    "custom_role_templates": {},
+                },
+                "ui": {
+                    "theme": "dark",
+                    "streaming": True,
+                    "format": "markdown",
+                    "show_model_icons": True,
+                    "show_timestamps": False,
+                },
+            }
+            config = AIConfig.model_validate(config_dict)
+        else:
+            # Full-featured config with roundtable setup
+            config = AIConfig(
+                default_model="openai/gpt-4",
+                models={
+                    "openai/gpt-4": ModelConfig(
+                        provider="openai", model="gpt-4", api_key="env:OPENAI_API_KEY"
+                    ),
+                    "anthropic/claude-3-5-sonnet": ModelConfig(
+                        provider="anthropic",
+                        model="claude-3-5-sonnet-20241022",
+                        api_key="env:ANTHROPIC_API_KEY",
+                    ),
+                    "gemini": ModelConfig(
+                        provider="gemini",
+                        model="gemini-2.5-flash",
+                        api_key="env:GEMINI_API_KEY",
+                    ),
+                },
+            )
+            # Enable roundtable with two main models
+            config.roundtable.enabled_models = [
+                "openai/gpt-4",
+                "anthropic/claude-3-5-sonnet",
+            ]
+
+        # Save the config
+        self._config = config
+        self.save_config(config)
+
+        return self._config_path
 
     def list_models(self) -> dict[str, ModelConfig]:
         """List all configured models."""

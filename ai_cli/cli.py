@@ -87,6 +87,65 @@ async def _interactive_async() -> None:
         raise typer.Exit(1) from e
 
 
+@app.command()
+def init(
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite existing configuration"
+    ),
+    minimal: bool = typer.Option(
+        False, "--minimal", "-m", help="Create minimal configuration"
+    ),
+) -> None:
+    """Initialize AI CLI configuration for first-time setup."""
+    try:
+        config_path = Path.home() / ".ai-cli" / "config.toml"
+
+        # Check if config already exists
+        if config_path.exists() and not force:
+            console.print(
+                f"[yellow]⚠️  Configuration already exists at {config_path}[/yellow]"
+            )
+            console.print("Use --force to overwrite, or --help for more options.")
+            raise typer.Exit(1)
+
+        # Ensure config directory exists
+        config_path.parent.mkdir(exist_ok=True)
+
+        # Create default configuration
+        created_config = config_manager.create_default_config(minimal=minimal)
+
+        # Create environment file template
+        created_env = env_manager.create_ai_cli_env_file()
+
+        # Success message with next steps
+        console.print()
+        console.print("[bold green]✅ AI CLI initialized successfully![/bold green]")
+        console.print()
+        console.print("[bold]Created files:[/bold]")
+        console.print(f"  📄 Config: {created_config}")
+        console.print(f"  🔐 Environment: {created_env}")
+        console.print()
+        console.print("[bold]Next steps:[/bold]")
+        console.print("  1️⃣  Add your API keys to the .env file:")
+        console.print(f"     [dim]edit {created_env}[/dim]")
+        console.print("  2️⃣  Test your setup:")
+        console.print('     [dim]ai chat "Hello, world!"[/dim]')
+        console.print("  3️⃣  Try a round-table discussion:")
+        console.print(
+            '     [dim]ai chat --roundtable "What are the benefits of AI?"[/dim]'
+        )
+        console.print()
+        console.print("[bold]API Key Resources:[/bold]")
+        console.print("  🔑 OpenAI: https://platform.openai.com/account/api-keys")
+        console.print("  🔑 Anthropic: https://console.anthropic.com/")
+        console.print("  🔑 Google (Gemini): https://makersuite.google.com/app/apikey")
+        console.print()
+
+    except Exception as e:
+        console.print(f"[red]❌ Error during initialization: {e}[/red]")
+        raise typer.Exit(1) from e
+
+
 @config_app.command("list")
 def config_list() -> None:
     """List all configured models."""

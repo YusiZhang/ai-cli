@@ -70,11 +70,10 @@ class TestCLI:
         assert result.exit_code == 0
         mock_asyncio_run.assert_called_once()
 
-    @patch("ai_cli.cli.ConfigManager")
+    @patch("ai_cli.cli.config_manager")
     def test_config_list_command(self, mock_config_manager):
         """Test config list command."""
-        mock_manager = mock_config_manager.return_value
-        mock_manager.list_models.return_value = {
+        mock_config_manager.list_models.return_value = {
             "test-model": MagicMock(
                 provider="openai",
                 model="gpt-4",
@@ -86,7 +85,7 @@ class TestCLI:
         mock_config = MagicMock()
         mock_config.default_model = "test-model"
         mock_config.roundtable.enabled_models = ["test-model"]
-        mock_manager.load_config.return_value = mock_config
+        mock_config_manager.load_config.return_value = mock_config
 
         result = self.runner.invoke(app, ["config", "list"])
 

@@ -4,6 +4,9 @@
 1. DO NOT modify ~/.ai-cli/config.toml file unless you asked me for permission
 2. DO run `uv run pre-commit` before you wrap up your task
 
+## Pitfall
+1. Gemini model api key should use environment var name "GEMINI_API_KEY", NOT "GOOGLE_API_KEY"
+
 ## Project Overview
 
 This is a multi-model AI CLI tool that provides three main interaction modes:

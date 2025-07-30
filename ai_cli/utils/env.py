@@ -70,7 +70,7 @@ ANTHROPIC_API_KEY=your-anthropic-api-key-here
 
 # Google API Key (for Gemini)
 # Get from: https://makersuite.google.com/app/apikey
-GOOGLE_API_KEY=your-google-api-key-here
+GEMINI_API_KEY=your-google-api-key-here
 
 # Optional: Custom endpoints
 # OLLAMA_ENDPOINT=http://localhost:11434
@@ -86,6 +86,45 @@ GOOGLE_API_KEY=your-google-api-key-here
             example_path = target_path.with_suffix(".example")
             example_path.write_text(example_content)
             return example_path
+
+    def create_ai_cli_env_file(self) -> Path:
+        """Create an AI CLI-specific .env file in ~/.ai-cli/ directory.
+
+        Returns:
+            Path to the created .env file
+        """
+        target_path = Path.home() / ".ai-cli" / ".env"
+
+        # Ensure directory exists
+        target_path.parent.mkdir(exist_ok=True)
+
+        env_content = """# AI CLI Environment Variables
+# Add your API keys here - get them from the provider websites
+
+# OpenAI API Key
+# Get from: https://platform.openai.com/account/api-keys
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Anthropic API Key
+# Get from: https://console.anthropic.com/
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
+
+# Google API Key (for Gemini)
+# Get from: https://makersuite.google.com/app/apikey
+GEMINI_API_KEY=your-google-api-key-here
+
+# Optional: Custom endpoints
+# OLLAMA_ENDPOINT=http://localhost:11434
+# CUSTOM_API_ENDPOINT=https://your-custom-endpoint.com
+
+# Optional: Other AI provider keys
+# COHERE_API_KEY=your-cohere-api-key-here
+# REPLICATE_API_TOKEN=your-replicate-token-here
+"""
+
+        # Create or overwrite the file
+        target_path.write_text(env_content)
+        return target_path
 
 
 # Global instance
