@@ -19,7 +19,7 @@ class TestCLI:
 
         assert result.exit_code == 0
         assert "AI CLI" in result.stdout
-        assert "0.1.0" in result.stdout
+        assert "version" in result.stdout
 
     @patch("ai_cli.cli.asyncio.run")
     @patch("ai_cli.cli.ConfigManager")

@@ -6,6 +6,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
+from . import __version__
 from .config.manager import ConfigManager
 from .core.chat import ChatEngine
 from .core.roles import RolePromptTemplates, RoundtableRole
@@ -625,7 +626,7 @@ def config_env(
 @app.command("version")
 def version() -> None:
     """Show version information."""
-    console.print("[bold blue]AI CLI[/bold blue] version [green]0.1.0[/green]")
+    console.print(f"[bold blue]AI CLI[/bold blue] version [green]{__version__}[/green]")
     console.print("Multi-model AI CLI with round-table discussions")
 
 
