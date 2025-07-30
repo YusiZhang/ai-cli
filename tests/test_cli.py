@@ -3,8 +3,9 @@
 import re
 from unittest.mock import MagicMock, patch
 
-from ai_cli.cli import app
 from typer.testing import CliRunner
+
+from ai_cli.cli import app
 
 
 def strip_ansi(text: str) -> str:
