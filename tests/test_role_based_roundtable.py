@@ -542,8 +542,9 @@ class TestChatEngineRoleBasedRoundtable:
     @pytest.fixture
     def mock_chat_engine(self, mock_config, mock_console):
         """Create mock chat engine."""
-        with patch("ai_cli.core.chat.ProviderFactory"), patch(
-            "ai_cli.core.chat.StreamingDisplay"
+        with (
+            patch("ai_cli.core.chat.ProviderFactory"),
+            patch("ai_cli.core.chat.StreamingDisplay"),
         ):
             return ChatEngine(mock_config, mock_console)
 
