@@ -1,11 +1,18 @@
 """Tests for the init command functionality."""
 
+import re
 from unittest.mock import patch
 
 from ai_cli.cli import app
 from ai_cli.config.manager import ConfigManager
 from ai_cli.utils.env import EnvManager
 from typer.testing import CliRunner
+
+
+def strip_ansi(text: str) -> str:
+    """Strip ANSI escape codes from text."""
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)
 
 
 class TestInitCommand:
@@ -15,20 +22,22 @@ class TestInitCommand:
         """Test that init command shows help correctly."""
         runner = CliRunner()
         result = runner.invoke(app, ["init", "--help"])
+        clean_output = strip_ansi(result.stdout)
 
         assert result.exit_code == 0
-        assert "Initialize AI CLI configuration" in result.stdout
-        assert "--force" in result.stdout
-        assert "--minimal" in result.stdout
+        assert "Initialize AI CLI configuration" in clean_output
+        assert "--force" in clean_output
+        assert "--minimal" in clean_output
 
     def test_init_command_basic_functionality(self):
         """Test that init command has basic functionality without complex mocking."""
         runner = CliRunner()
         # Just test that the command doesn't crash and has expected content
         result = runner.invoke(app, ["init", "--help"])
+        clean_output = strip_ansi(result.stdout)
 
         assert result.exit_code == 0
-        assert "Initialize AI CLI configuration" in result.stdout
+        assert "Initialize AI CLI configuration" in clean_output
 
 
 class TestConfigManagerInit:

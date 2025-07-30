@@ -1,9 +1,16 @@
 """Integration tests for CLI commands."""
 
+import re
 from unittest.mock import MagicMock, patch
 
 from ai_cli.cli import app
 from typer.testing import CliRunner
+
+
+def strip_ansi(text: str) -> str:
+    """Strip ANSI escape codes from text."""
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    return ansi_escape.sub("", text)
 
 
 class TestCLI:
@@ -16,10 +23,11 @@ class TestCLI:
     def test_version_command(self):
         """Test version command."""
         result = self.runner.invoke(app, ["version"])
+        clean_output = strip_ansi(result.stdout)
 
         assert result.exit_code == 0
-        assert "AI CLI" in result.stdout
-        assert "version" in result.stdout
+        assert "AI CLI" in clean_output
+        assert "version" in clean_output
 
     @patch("ai_cli.cli.asyncio.run")
     @patch("ai_cli.cli.ConfigManager")
@@ -87,9 +95,10 @@ class TestCLI:
         mock_config_manager.load_config.return_value = mock_config
 
         result = self.runner.invoke(app, ["config", "list"])
+        clean_output = strip_ansi(result.stdout)
 
         assert result.exit_code == 0
-        assert "test-model" in result.stdout
+        assert "test-model" in clean_output
 
     @patch("ai_cli.cli.config_manager")
     def test_config_set_default_model(self, mock_config_manager):
@@ -152,9 +161,10 @@ class TestCLI:
         mock_env_manager.get_env_var.return_value = "test-key-value"
 
         result = self.runner.invoke(app, ["config", "env", "--show"])
+        clean_output = strip_ansi(result.stdout)
 
         assert result.exit_code == 0
-        assert "Environment Variable Status" in result.stdout
+        assert "Environment Variable Status" in clean_output
 
     @patch("ai_cli.cli.env_manager")
     def test_config_env_init(self, mock_env_manager):
@@ -172,6 +182,7 @@ class TestCLI:
         mock_config_manager.load_config.side_effect = Exception("Config error")
 
         result = self.runner.invoke(app, ["config", "list"])
+        clean_output = strip_ansi(result.stdout)
 
         assert result.exit_code == 1
-        assert "Error: Config error" in result.stdout
+        assert "Error: Config error" in clean_output
