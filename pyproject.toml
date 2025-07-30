@@ -68,6 +68,12 @@ Changelog = "https://github.com/YusiZhang/ai-cli/releases"
 [tool.hatch.version]
 source = "vcs"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/ai_cli/_version.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/ai_cli"]
 

@@ -174,3 +174,6 @@ Desktop.ini
 # Linux
 *~
 TODO.md
+
+# Generated version file
+src/ai_cli/_version.py
