@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ai-cli"
+name = "ai-cli-chat"
 dynamic = ["version"]
 description = "Multi-model AI Chat at the CLI featuring round-table discussions"
 authors = [{name = "Yusi", email = "5696168+YusiZhang@users.noreply.github.com"}]

@@ -14,7 +14,7 @@ A complete guide for installing and setting up the AI CLI for end users.
 ### Option 1: Install with pip (Recommended)
 
 ```bash
-pip install ai-cli
+pip install ai-cli-chat
 ```
 
 ### Option 2: Install with pipx (Best for CLI tools)
@@ -24,7 +24,7 @@ pip install ai-cli
 pip install pipx
 
 # Install AI CLI with pipx
-pipx install ai-cli
+pipx install ai-cli-chat
 ```
 
 ### Option 3: Install in Virtual Environment
@@ -35,7 +35,7 @@ python -m venv ai-env
 source ai-env/bin/activate  # On Windows: ai-env\Scripts\activate
 
 # Install AI CLI
-pip install ai-cli
+pip install ai-cli-chat
 ```
 
 ## ✅ Verify Installation
@@ -228,8 +228,8 @@ ai config roundtable --remove ollama/llama2
 
 ```bash
 # 1. Install
-$ pip install ai-cli
-Successfully installed ai-cli-0.1.0
+$ pip install ai-cli-chat
+Successfully installed ai-cli-chat-1.0.0
 
 # 2. Verify installation
 $ ai --help
@@ -347,7 +347,7 @@ format = "markdown"
 python --version
 
 # If using Python 3.9+, try:
-python -m pip install ai-cli
+python -m pip install ai-cli-chat
 ```
 
 #### Permission Issues
@@ -356,7 +356,7 @@ python -m pip install ai-cli
 pip install --user ai-cli
 
 # Or use pipx
-pipx install ai-cli
+pipx install ai-cli-chat
 ```
 
 #### Package Not Found
@@ -366,7 +366,7 @@ pip install --upgrade pip
 
 # Clear cache and retry
 pip cache purge
-pip install ai-cli
+pip install ai-cli-chat
 ```
 
 ### Configuration Issues
@@ -405,11 +405,11 @@ curl http://localhost:11434/api/tags
 #### Import Errors
 ```bash
 # Reinstall dependencies
-pip install --upgrade ai-cli
+pip install --upgrade ai-cli-chat
 
 # Or reinstall completely
-pip uninstall ai-cli
-pip install ai-cli
+pip uninstall ai-cli-chat
+pip install ai-cli-chat
 ```
 
 #### Slow Responses

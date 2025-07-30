@@ -1,6 +1,6 @@
 # AI CLI - Multi-Model AI Command Line Interface
 
-[![PyPI version](https://badge.fury.io/py/ai-cli.svg)](https://badge.fury.io/py/ai-cli)
+[![PyPI version](https://badge.fury.io/py/ai-cli-chat.svg)](https://badge.fury.io/py/ai-cli-chat)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/ai-cli/ai-cli/workflows/Tests/badge.svg)](https://github.com/ai-cli/ai-cli/actions)
@@ -24,7 +24,7 @@ A powerful command-line interface for interacting with multiple AI models, featu
 ### Installation
 
 ```bash
-pip install ai-cli
+pip install ai-cli-chat
 ```
 
 ### Basic Setup

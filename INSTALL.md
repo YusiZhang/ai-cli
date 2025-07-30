@@ -4,7 +4,7 @@
 
 ### From PyPI (Recommended)
 ```bash
-pip install ai-cli
+pip install ai-cli-chat
 ```
 
 ### From Source
