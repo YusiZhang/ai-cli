@@ -8,7 +8,6 @@ resolution-markers = [
 
 [[package]]
 name = "ai-cli"
-version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
@@ -63,7 +62,7 @@ requires-dist = [
     { name = "twine", marker = "extra == 'dev'", specifier = ">=4.0" },
     { name = "typer", specifier = ">=0.9.0" },
 ]
-provides-extras = ["tui", "dev"]
+provides-extras = ["dev", "tui"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "types-toml", specifier = ">=0.10.8.20240310" }]

@@ -2,9 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
-from typer.testing import CliRunner
-
 from ai_cli.cli import app
+from typer.testing import CliRunner
 
 
 class TestCLI:

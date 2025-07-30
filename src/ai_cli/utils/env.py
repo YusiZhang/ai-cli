@@ -103,15 +103,15 @@ GEMINI_API_KEY=your-google-api-key-here
 
 # OpenAI API Key
 # Get from: https://platform.openai.com/account/api-keys
-OPENAI_API_KEY=your-openai-api-key-here
+# OPENAI_API_KEY=your-openai-api-key-here
 
 # Anthropic API Key
 # Get from: https://console.anthropic.com/
-ANTHROPIC_API_KEY=your-anthropic-api-key-here
+# ANTHROPIC_API_KEY=your-anthropic-api-key-here
 
 # Google API Key (for Gemini)
 # Get from: https://makersuite.google.com/app/apikey
-GEMINI_API_KEY=your-google-api-key-here
+# GEMINI_API_KEY=your-google-api-key-here
 
 # Optional: Custom endpoints
 # OLLAMA_ENDPOINT=http://localhost:11434

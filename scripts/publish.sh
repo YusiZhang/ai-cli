@@ -13,9 +13,9 @@ rm -rf dist/ build/ *.egg-info/
 # Run quality checks
 echo "🔍 Running quality checks..."
 uv run pytest --no-cov -x
-uv run ruff check ai_cli/
-uv run black --check ai_cli/
-uv run mypy ai_cli/
+uv run ruff check src/ai_cli/
+uv run black --check src/ai_cli/
+uv run mypy src/ai_cli/
 
 # Build the package
 echo "📦 Building package..."

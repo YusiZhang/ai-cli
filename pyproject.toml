@@ -1,17 +1,17 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "ai-cli"
-version = "0.1.0"
-description = "Multi-model AI CLI with round-table discussions"
-authors = [{name = "AI CLI Developer", email = "dev@example.com"}]
-maintainers = [{name = "AI CLI Developer", email = "dev@example.com"}]
+dynamic = ["version"]
+description = "Multi-model AI Chat at the CLI featuring round-table discussions"
+authors = [{name = "Yusi", email = "5696168+YusiZhang@users.noreply.github.com"}]
+maintainers = [{name = "Yusi", email = "5696168+YusiZhang@users.noreply.github.com"}]
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
-keywords = ["ai", "cli", "chatgpt", "claude", "llm", "roundtable", "conversation"]
+keywords = ["ai", "cli", "chat", "chatgpt", "llm", "roundtable", "conversation"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -59,14 +59,17 @@ dev = [
 ai = "ai_cli.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/ai-cli/ai-cli"
-Repository = "https://github.com/ai-cli/ai-cli"
-Documentation = "https://github.com/ai-cli/ai-cli#readme"
-Issues = "https://github.com/ai-cli/ai-cli/issues"
-Changelog = "https://github.com/ai-cli/ai-cli/releases"
+Homepage = "https://github.com/YusiZhang/ai-cli"
+Repository = "https://github.com/YusiZhang/ai-cli"
+Documentation = "https://github.com/YusiZhang/ai-cli#readme"
+Issues = "https://github.com/YusiZhang/ai-cli/issues"
+Changelog = "https://github.com/YusiZhang/ai-cli/releases"
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.hatch.build.targets.wheel]
-packages = ["ai_cli"]
+packages = ["src/ai_cli"]
 
 [tool.ruff]
 target-version = "py39"

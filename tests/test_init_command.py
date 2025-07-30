@@ -2,11 +2,10 @@
 
 from unittest.mock import patch
 
-from typer.testing import CliRunner
-
 from ai_cli.cli import app
 from ai_cli.config.manager import ConfigManager
 from ai_cli.utils.env import EnvManager
+from typer.testing import CliRunner
 
 
 class TestInitCommand:
