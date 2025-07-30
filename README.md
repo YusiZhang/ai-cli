@@ -1,4 +1,4 @@
-# AI CLI - Multi-Model AI Command Line Interface
+# ai-cli-chat Multi-model AI Chat at the CLI `ai` featuring round-table discussions
 
 [![PyPI version](https://badge.fury.io/py/ai-cli-chat.svg)](https://badge.fury.io/py/ai-cli-chat)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -24,25 +24,26 @@ A powerful command-line interface for interacting with multiple AI models, featu
 ### Installation
 
 ```bash
-pip install ai-cli-chat
+pipx install ai-cli-chat
 ```
 
 ### Basic Setup
 
 1. **Configure API Keys** (choose your preferred method):
    ```bash
-   # Option 1: Create .env file (recommended)
-   ai config env --init
-   # Edit the created .env file with your API keys
+   ai init
+   ```
 
-   # Option 2: Set environment variables
-   export OPENAI_API_KEY="your-openai-key"
-   export ANTHROPIC_API_KEY="your-anthropic-key"
+   This will create `~/.ai-cli/config.toml` and `~/.ai-cli/.env` template
+   To get a quick start, fulfill the API key in the `~/.ai-cli/.env` file, i.e
+   ```
+   OPENAI_API_KEY=xxx
    ```
 
 2. **Verify Setup**:
    ```bash
-   ai config list
+   ai version
+   ai chat "Hello there!"
    ```
 
 ### Usage Examples
@@ -69,9 +70,25 @@ ai interactive
 ```
 
 #### Round-Table Discussions
+You need to enable at least two AI model to use this. Or create at least two `models` in the config with the same model provider.
+```
+[roundtable]
+enabled_models = [ "openai/gpt-4", "gemini"]
+...
+
+[models."openai/gpt-4"]
+provider = "openai"
+model = "gpt-4"
+...
+
+[models.gemini]
+provider = "gemini"
+model = "gemini-2.5-flash"
+...
+```
 ```bash
 # Multiple AI models discuss a topic
-ai chat --roundtable "What are the pros and cons of remote work?"
+ai chat -rt "give me 3 domain name suggestion for a b2c saas that help user to convert their fav newsletter into podcast"
 
 # Parallel responses (all models respond simultaneously)
 ai chat --roundtable --parallel "Compare Python vs JavaScript"
@@ -98,7 +115,7 @@ ai config set default_model my-gpt4
 ```bash
 # Add models to round-table discussions
 ai config roundtable --add openai/gpt-4
-ai config roundtable --add anthropic/claude-3-sonnet
+ai config roundtable --add anthropic/claude-3-5-sonnet
 
 # List round-table participants
 ai config roundtable --list
@@ -119,7 +136,7 @@ ai config env --init
 |----------|-------|-------|
 | OpenAI | gpt-4, gpt-3.5-turbo | Requires `OPENAI_API_KEY` |
 | Anthropic | claude-3-sonnet, claude-3-haiku | Requires `ANTHROPIC_API_KEY` |
-| Google | gemini-pro | Requires `GOOGLE_API_KEY` |
+| Google | gemini-pro | Requires `GEMINI_API_KEY` |
 | Ollama | llama2, codellama, etc. | Local models, no API key needed |
 
 ## 🔧 Advanced Configuration
@@ -158,8 +175,7 @@ Round-table mode is unique to AI CLI. Here's how it works:
 
 1. **Sequential Mode** (default): Models respond one after another, building on previous responses
 2. **Parallel Mode** (`--parallel`): All models respond to the original prompt simultaneously
-3. **Critique Mode**: Later models can reference and critique earlier responses
-4. **Multiple Rounds**: Configurable discussion rounds for deeper exploration
+3. **Multiple Rounds**: Configurable discussion rounds for deeper exploration
 
 This creates fascinating conversations where models with different strengths can collaborate, disagree, and build upon each other's ideas.
 
