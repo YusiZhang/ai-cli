@@ -130,6 +130,63 @@ ai config env --show
 ai config env --init
 ```
 
+## 📄 Template Configurations
+
+The project includes several pre-built configuration templates in `config-examples/` for common use cases:
+
+### Available Templates
+- **basic-roundtable.toml** - Simple two-model collaborative discussion
+- **multi-model-roundtable.toml** - Complex discussions with multiple models and roles
+- **creative-writing.toml** - Optimized for creative writing and storytelling
+- **code-review.toml** - Technical code review and programming discussions
+- **research-analysis.toml** - Academic research and analytical tasks
+- **debate-format.toml** - Structured debates between models
+- **problem-solving.toml** - Collaborative problem-solving sessions
+
+### Using Templates
+```bash
+# Method 1: Copy a template to your config directory
+cp config-examples/basic-roundtable.toml ~/.ai-cli/config.toml
+
+# Method 2: Initialize base config then customize
+ai init
+ai config roundtable --add openai/gpt-4
+ai config roundtable --add anthropic/claude-3-5-sonnet
+```
+
+### Role-based Configuration Example
+```toml
+[roundtable]
+enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet", "gemini"]
+use_role_based_prompting = true
+role_rotation = true
+discussion_rounds = 3
+
+# Optional: Restrict which roles specific models can play
+# System uses 4 predefined roles: generator, critic, refiner, evaluator
+[roundtable.role_assignments]
+"openai/gpt-4" = ["generator", "refiner"]  # Best for creative generation
+"anthropic/claude-3-5-sonnet" = ["critic", "evaluator"]  # Best for analysis
+
+[models."openai/gpt-4"]
+provider = "openai"
+model = "gpt-4"
+api_key = "env:OPENAI_API_KEY"
+temperature = 0.8  # Higher creativity for generation tasks
+
+[models."anthropic/claude-3-5-sonnet"]
+provider = "anthropic"
+model = "claude-3-5-sonnet"
+api_key = "env:ANTHROPIC_API_KEY"
+temperature = 0.3  # Lower temperature for critical analysis
+
+[models.gemini]
+provider = "gemini"
+model = "gemini-2.0-flash-thinking-exp"
+api_key = "env:GEMINI_API_KEY"
+# No role restrictions - can play any of the 4 roles
+```
+
 ## 📋 Supported Models
 
 | Provider | Model | Notes |
@@ -143,41 +200,140 @@ ai config env --init
 
 The CLI stores configuration in `~/.ai-cli/config.toml`. You can customize:
 
-- **Model Settings**: Temperature, max tokens, context window
-- **Round-Table Behavior**: Discussion rounds, critique mode, parallel responses
-- **UI Preferences**: Theme, streaming, formatting options
+- **Model Settings**: Temperature, max tokens, context window, API endpoints
+- **Round-Table Behavior**: Discussion rounds, role-based prompting, parallel responses
+- **UI Preferences**: Theme, streaming, formatting, model icons
+- **Role Assignments**: Which models can play which of the 4 predefined roles
 
-Example configuration:
+### Complete Configuration Example
 ```toml
 default_model = "openai/gpt-4"
 
-[models.openai/gpt-4]
+# Individual model configurations
+[models."openai/gpt-4"]
 provider = "openai"
 model = "gpt-4"
 api_key = "env:OPENAI_API_KEY"
 temperature = 0.7
 max_tokens = 4000
+timeout_seconds = 30
 
+[models."anthropic/claude-3-5-sonnet"]
+provider = "anthropic"
+model = "claude-3-5-sonnet"
+api_key = "env:ANTHROPIC_API_KEY"
+temperature = 0.8
+max_tokens = 8000
+
+# Additional model configurations
+[models."gemini/gemini-pro"]
+provider = "gemini"
+model = "gemini-pro"
+api_key = "env:GEMINI_API_KEY"
+temperature = 0.7
+max_tokens = 4000
+
+# Round-table configuration
 [roundtable]
-enabled_models = ["openai/gpt-4", "anthropic/claude-3-sonnet"]
-discussion_rounds = 2
+enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet", "gemini/gemini-pro"]
+discussion_rounds = 3
 parallel_responses = false
+use_role_based_prompting = true
+role_rotation = true
+preserve_original_context = true
+timeout_seconds = 60
 
+# UI customization
 [ui]
 theme = "dark"
 streaming = true
 format = "markdown"
+show_model_icons = true
+show_timestamps = true
+show_token_usage = true
+
+# Environment and debugging
+[debug]
+log_level = "INFO"
+save_conversations = true
+conversation_dir = "~/.ai-cli/conversations"
 ```
+
+### Configuration Sections Explained
+
+**Model Settings:**
+- `temperature`: Creativity level (0.0-2.0)
+- `max_tokens`: Response length limit
+- `provider`: AI provider (openai, anthropic, gemini, ollama)
+- `model`: Specific model name
+- `api_key`: API key (can use env: prefix)
+- `endpoint`: Custom API endpoint (optional)
+
+**Round-table Options:**
+- `use_role_based_prompting`: Enable specialized roles
+- `role_rotation`: Models switch roles between rounds
+- `preserve_original_context`: Keep original prompt in all rounds
+- `discussion_rounds`: Number of conversation rounds
+
+**UI Customization:**
+- `show_model_icons`: Display model indicators
+- `show_timestamps`: Show response timing
+- `show_token_usage`: Display token consumption
 
 ## 🤝 Round-Table Discussions Explained
 
-Round-table mode is unique to AI CLI. Here's how it works:
+Round-table mode is the **unique selling point** of AI CLI, featuring advanced **role-based prompting** that goes beyond simple multi-model chat:
 
+### Core Features
 1. **Sequential Mode** (default): Models respond one after another, building on previous responses
 2. **Parallel Mode** (`--parallel`): All models respond to the original prompt simultaneously
-3. **Multiple Rounds**: Configurable discussion rounds for deeper exploration
+3. **Role-based Prompting**: Automatic assignment of 4 predefined roles (generator, critic, refiner, evaluator)
+4. **Multiple Rounds**: Configurable discussion rounds for deeper exploration
+5. **Role Rotation**: Models can switch roles between rounds for diverse perspectives
 
-This creates fascinating conversations where models with different strengths can collaborate, disagree, and build upon each other's ideas.
+### Role-based Prompting Examples
+
+**Two-Model Roundtable (Sequential Roles):**
+```bash
+ai chat --roundtable "How can we reduce customer churn in our SaaS product?"
+# Round 1: GPT-4 (Generator) creates initial suggestions
+# Round 1: Claude (Critic) analyzes and critiques GPT-4's suggestions
+# Round 2: Claude (Refiner) improves the suggestions
+# Round 2: GPT-4 (Critic) provides final critique
+```
+
+**Multi-Model Roundtable (All 4 Roles):**
+```bash
+ai chat --roundtable "Design a comprehensive social media strategy"
+# Round 1: Models A&B (Generators) create different strategy approaches
+# Round 1: Models C&D (Critics) analyze and identify issues
+# Round 2: Models A&B (Refiners) improve strategies based on critiques
+# Round 3: Model A (Evaluator) ranks all strategies and provides final recommendation
+```
+
+**Role Rotation in Action:**
+```bash
+ai chat --roundtable "Compare Python vs JavaScript for web development"
+# GPT-4 starts as Generator → becomes Critic in round 2
+# Claude starts as Critic → becomes Refiner in round 2
+# System automatically rotates roles to get diverse perspectives
+```
+
+### Why Role-based Round-tables?
+- **Structured Discussions**: 4 predefined roles (generator, critic, refiner, evaluator) create organized conversations
+- **Quality Improvement**: Iterative critique and refinement process enhances initial ideas
+- **Multiple Perspectives**: Role rotation ensures models approach problems from different angles
+- **Automatic Workflow**: System handles role assignment and prompt templating automatically
+- **Reduced Bias**: Multiple models and roles minimize single-perspective limitations
+
+This creates **structured collaborative discussions** where models systematically generate, critique, refine, and evaluate ideas - **like having a well-organized brainstorming session with clear roles**.
+
+### How Role-based Prompting Works
+**Implementation details:**
+- **Role Templates**: Hardcoded prompt templates for the 4 roles (generator, critic, refiner, evaluator)
+- **Automatic Assignment**: System automatically assigns roles to models based on round and model count
+- **No Custom System Prompts**: Individual models cannot have custom system prompts in configuration
+- **Role Behavior**: Each role uses its predefined template from the `RolePromptTemplates` class
 
 ## 🧪 Development
 
@@ -211,6 +367,35 @@ uv run mypy src/ai_cli/
 ### Pre-commit Hooks
 ```bash
 uv run pre-commit install
+```
+
+### Project Structure
+```
+ai-cli/
+├── src/ai_cli/                 # Main package source
+│   ├── __init__.py            # Package initialization
+│   ├── cli.py                 # CLI entry point and commands
+│   ├── config/                # Configuration management
+│   │   ├── manager.py         # Config file handling
+│   │   └── models.py          # Pydantic data models
+│   ├── core/                  # Core business logic
+│   │   ├── chat.py           # Chat engine and round-table logic
+│   │   ├── messages.py       # Message data structures
+│   │   └── roles.py          # Role-based prompting system
+│   ├── providers/            # AI provider abstractions
+│   │   ├── base.py          # Abstract provider interface
+│   │   ├── factory.py       # Provider factory pattern
+│   │   └── litellm_provider.py  # LiteLLM implementation
+│   ├── ui/                  # User interface components
+│   │   ├── interactive.py   # Interactive chat session
+│   │   └── streaming.py     # Real-time response streaming
+│   └── utils/               # Utility functions
+│       └── env.py           # Environment variable handling
+├── tests/                   # Test suite
+├── config-examples/         # Template configurations
+├── features-doc/           # Feature documentation
+├── pyproject.toml          # Project configuration
+└── README.md              # This file
 ```
 
 ## 📝 License
