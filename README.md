@@ -7,18 +7,6 @@
 
 A powerful command-line interface for interacting with multiple AI models, featuring round-table discussions where different AI models can collaborate and critique each other's responses.
 
-## ✨ Features
-
-- **🤖 Multi-Model Support**: OpenAI GPT-4, Anthropic Claude, Google Gemini, Ollama (local models)
-- **💬 Three Interaction Modes**:
-  - **Single Chat**: Quick one-off conversations
-  - **Interactive Session**: Multi-turn conversations with history
-  - **Round-Table Discussions**: Multiple AI models discussing topics together
-- **⚡ Real-time Streaming**: See responses as they're generated
-- **🎨 Rich Terminal UI**: Beautiful formatting with markdown support
-- **⚙️ Flexible Configuration**: Per-model settings, API key management
-- **🔧 Developer Friendly**: Type-safe, well-tested, extensible architecture
-
 ## 🚀 Quick Start
 
 ### Installation
@@ -29,7 +17,7 @@ pipx install ai-cli-chat
 
 ### Basic Setup
 
-1. **Configure API Keys** (choose your preferred method):
+**Configure API Keys** (choose your preferred method):
    ```bash
    ai init
    ```
@@ -40,11 +28,22 @@ pipx install ai-cli-chat
    OPENAI_API_KEY=xxx
    ```
 
-2. **Verify Setup**:
+**Verify Setup**:
    ```bash
    ai version
    ai chat "Hello there!"
    ```
+
+## ✨ Features
+
+- **🤖 Multi-Model Support**: OpenAI GPT-4, Anthropic Claude, Google Gemini, Ollama (local models)
+- **💬 Three Interaction Modes**:
+  - **Single Chat**: Quick one-off conversations
+  - **Interactive Session**: Multi-turn conversations with history
+  - **Round-Table Discussions**: Multiple AI models discussing topics together
+- **⚡ Real-time Streaming**: See responses as they're generated
+- **🎨 Rich Terminal UI**: Beautiful formatting with markdown support
+- **⚙️ Flexible Configuration**: Per-model settings, API key management
 
 ### Usage Examples
 
@@ -192,7 +191,7 @@ api_key = "env:GEMINI_API_KEY"
 | Provider | Model | Notes |
 |----------|-------|-------|
 | OpenAI | gpt-4, gpt-3.5-turbo | Requires `OPENAI_API_KEY` |
-| Anthropic | claude-3-sonnet, claude-3-haiku | Requires `ANTHROPIC_API_KEY` |
+| Anthropic | claude-3-5-sonnet, claude-3-haiku | Requires `ANTHROPIC_API_KEY` |
 | Google | gemini-pro | Requires `GEMINI_API_KEY` |
 | Ollama | llama2, codellama, etc. | Local models, no API key needed |
 
@@ -250,13 +249,6 @@ streaming = true
 format = "markdown"
 show_model_icons = true
 show_timestamps = true
-show_token_usage = true
-
-# Environment and debugging
-[debug]
-log_level = "INFO"
-save_conversations = true
-conversation_dir = "~/.ai-cli/conversations"
 ```
 
 ### Configuration Sections Explained
@@ -278,7 +270,6 @@ conversation_dir = "~/.ai-cli/conversations"
 **UI Customization:**
 - `show_model_icons`: Display model indicators
 - `show_timestamps`: Show response timing
-- `show_token_usage`: Display token consumption
 
 ## 🤝 Round-Table Discussions Explained
 
