@@ -10,7 +10,6 @@ parallel_responses = false
 timeout_seconds = 45
 use_role_based_prompting = true
 role_rotation = false  # Fixed roles for debate consistency
-preserve_original_context = true
 
 # Debate-specific role assignments
 [roundtable.role_assignments]
@@ -81,7 +80,6 @@ theme = "dark"
 streaming = true
 format = "markdown"
 show_model_icons = true
-show_timestamps = false
 
 # Example usage:
 # ai chat --roundtable "Should artificial intelligence development be more heavily regulated?"

@@ -29,7 +29,6 @@ Core Enhancements
     - role_assignments: Dict[str, List[RoundtableRole]] - which roles each model can play
     - role_rotation: bool - whether to rotate roles or keep fixed assignments
     - prompt_templates: Dict[RoundtableRole, str] - customizable role instructions
-    - preserve_original_context: bool - always include original prompt
 - Model-specific role capabilities - some models might be better critics than generators
 
 3. Intelligent Round Management

@@ -10,14 +10,12 @@ parallel_responses = false
 timeout_seconds = 30
 use_role_based_prompting = true
 role_rotation = true
-preserve_original_context = true
 
 [ui]
 theme = "dark"
 streaming = true
 format = "markdown"
 show_model_icons = true
-show_timestamps = false
 
 # Example usage:
 # ai chat --roundtable "What are the pros and cons of remote work?"

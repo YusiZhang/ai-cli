@@ -86,7 +86,6 @@ class TestUIConfig:
         assert config.streaming is True
         assert config.format == "markdown"
         assert config.show_model_icons is True
-        assert config.show_timestamps is False
 
     def test_ui_config_custom(self):
         """Test custom UI configuration."""
@@ -95,14 +94,12 @@ class TestUIConfig:
             streaming=False,
             format="plain",
             show_model_icons=False,
-            show_timestamps=True,
         )
 
         assert config.theme == "light"
         assert config.streaming is False
         assert config.format == "plain"
         assert config.show_model_icons is False
-        assert config.show_timestamps is True
 
     def test_ui_config_invalid_theme(self):
         """Test UI configuration with invalid theme."""

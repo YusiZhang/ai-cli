@@ -10,7 +10,6 @@ parallel_responses = false
 timeout_seconds = 60
 use_role_based_prompting = true
 role_rotation = true
-preserve_original_context = true
 
 [roundtable.custom_role_templates]
 generator = """
@@ -95,7 +94,6 @@ theme = "dark"
 streaming = true
 format = "markdown"
 show_model_icons = true
-show_timestamps = false
 
 # Example usage:
 # ai chat --roundtable "How can we reduce employee turnover in our tech company?"

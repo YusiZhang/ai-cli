@@ -10,7 +10,6 @@ parallel_responses = false
 timeout_seconds = 60
 use_role_based_prompting = true
 role_rotation = true
-preserve_original_context = true
 
 # Role preferences for creative writing
 [roundtable.role_assignments]
@@ -81,7 +80,6 @@ theme = "dark"
 streaming = true
 format = "markdown"
 show_model_icons = true
-show_timestamps = false
 
 # Example usage:
 # ai chat --roundtable "Write a short story about a time traveler who accidentally changes history"

@@ -173,6 +173,9 @@ Desktop.ini
 
 # Linux
 *~
+
+# TODO files
+# These files are often used to track tasks or features that need to be implemented.
 TODO.md
 
 # Generated version file

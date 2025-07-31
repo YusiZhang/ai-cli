@@ -39,7 +39,6 @@ class RoundTableConfig(BaseModel):
     use_role_based_prompting: bool = True
     role_assignments: dict[str, list[RoundtableRole]] = {}
     role_rotation: bool = True
-    preserve_original_context: bool = True
     custom_role_templates: dict[RoundtableRole, str] = {}
 
     @field_validator("role_assignments", mode="before")
@@ -111,7 +110,6 @@ class UIConfig(BaseModel):
     streaming: bool = True
     format: Literal["markdown", "plain"] = "markdown"
     show_model_icons: bool = True
-    show_timestamps: bool = False
 
 
 class AIConfig(BaseSettings):

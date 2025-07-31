@@ -17,7 +17,6 @@ timeout_seconds = 30
 # Enable role-based prompting with role rotation
 use_role_based_prompting = true
 role_rotation = true
-preserve_original_context = true
 
 # Role assignments - what roles each model can play
 # Models can play any role not listed here, system will use default templates

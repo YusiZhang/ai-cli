@@ -63,7 +63,6 @@ class ConfigManager:
                 "timeout_seconds": config.roundtable.timeout_seconds,
                 "use_role_based_prompting": config.roundtable.use_role_based_prompting,
                 "role_rotation": config.roundtable.role_rotation,
-                "preserve_original_context": config.roundtable.preserve_original_context,
                 "role_assignments": {
                     model: [role.value for role in roles]
                     for model, roles in config.roundtable.role_assignments.items()
@@ -78,7 +77,6 @@ class ConfigManager:
                 "streaming": config.ui.streaming,
                 "format": config.ui.format,
                 "show_model_icons": config.ui.show_model_icons,
-                "show_timestamps": config.ui.show_timestamps,
             },
         }
 
@@ -204,7 +202,6 @@ class ConfigManager:
                     "timeout_seconds": 30,
                     "use_role_based_prompting": True,
                     "role_rotation": True,
-                    "preserve_original_context": True,
                     "role_assignments": {},
                     "custom_role_templates": {},
                 },
@@ -213,7 +210,6 @@ class ConfigManager:
                     "streaming": True,
                     "format": "markdown",
                     "show_model_icons": True,
-                    "show_timestamps": False,
                 },
             }
             config = AIConfig.model_validate(config_dict)

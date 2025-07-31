@@ -239,7 +239,6 @@ discussion_rounds = 3
 parallel_responses = false
 use_role_based_prompting = true
 role_rotation = true
-preserve_original_context = true
 timeout_seconds = 60
 
 # UI customization
@@ -248,7 +247,6 @@ theme = "dark"
 streaming = true
 format = "markdown"
 show_model_icons = true
-show_timestamps = true
 ```
 
 ### Configuration Sections Explained
@@ -264,12 +262,10 @@ show_timestamps = true
 **Round-table Options:**
 - `use_role_based_prompting`: Enable specialized roles
 - `role_rotation`: Models switch roles between rounds
-- `preserve_original_context`: Keep original prompt in all rounds
 - `discussion_rounds`: Number of conversation rounds
 
 **UI Customization:**
 - `show_model_icons`: Display model indicators
-- `show_timestamps`: Show response timing
 
 ## 🤝 Round-Table Discussions Explained
 
@@ -403,7 +399,3 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 - [Rich](https://rich.readthedocs.io/) for beautiful terminal output
 - [LiteLLM](https://litellm.ai/) for universal model access
 - Inspired by the need for collaborative AI conversations
-
-## 📚 Documentation
-
-For detailed documentation, architecture details, and extension guides, see [CLAUDE.md](CLAUDE.md).

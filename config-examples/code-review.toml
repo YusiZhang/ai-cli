@@ -10,7 +10,6 @@ parallel_responses = false
 timeout_seconds = 60
 use_role_based_prompting = true
 role_rotation = false  # Fixed roles for consistency
-preserve_original_context = true
 
 # Specialized roles for code review
 [roundtable.role_assignments]
@@ -81,7 +80,6 @@ theme = "dark"
 streaming = true
 format = "markdown"
 show_model_icons = true
-show_timestamps = false
 
 # Example usage:
 # ai chat --roundtable "Review this Python function: [paste your code here]"
