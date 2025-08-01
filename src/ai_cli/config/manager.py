@@ -89,19 +89,31 @@ class ConfigManager:
             "default_model": config.default_model,
             "models": {},
             "roundtable": {
-                "enabled_models": config.roundtable.enabled_models,
+                # New role-centric fields
+                "enabled_roles": [
+                    role.value for role in config.roundtable.enabled_roles
+                ],
+                "role_model_mapping": {
+                    role.value: model
+                    for role, model in config.roundtable.role_model_mapping.items()
+                },
+                "solo_model": config.roundtable.solo_model,
+                # Discussion settings
                 "discussion_rounds": config.roundtable.discussion_rounds,
                 "parallel_responses": config.roundtable.parallel_responses,
                 "timeout_seconds": config.roundtable.timeout_seconds,
+                # Custom templates
+                "custom_role_templates": {
+                    role.value: template
+                    for role, template in config.roundtable.custom_role_templates.items()
+                },
+                # Legacy fields (kept for migration)
+                "enabled_models": config.roundtable.enabled_models,
                 "use_role_based_prompting": config.roundtable.use_role_based_prompting,
                 "role_rotation": config.roundtable.role_rotation,
                 "role_assignments": {
                     model: [role.value for role in roles]
                     for model, roles in config.roundtable.role_assignments.items()
-                },
-                "custom_role_templates": {
-                    role.value: template
-                    for role, template in config.roundtable.custom_role_templates.items()
                 },
             },
             "ui": {
@@ -337,3 +349,77 @@ class ConfigManager:
         """Get all custom role templates."""
         config = self.load_config()
         return config.roundtable.custom_role_templates.copy()
+
+    # New role-centric methods
+    def enable_roundtable_role(self, role_str: str) -> None:
+        """Enable a role in the roundtable."""
+        try:
+            role = RoundtableRole(role_str)
+        except ValueError as e:
+            raise ValueError(
+                f"Invalid role: {role_str}. Valid roles: {[r.value for r in RoundtableRole]}"
+            ) from e
+
+        config = self.load_config()
+        if role not in config.roundtable.enabled_roles:
+            config.roundtable.enabled_roles.append(role)
+            self.save_config(config)
+
+    def disable_roundtable_role(self, role_str: str) -> None:
+        """Disable a role in the roundtable."""
+        try:
+            role = RoundtableRole(role_str)
+        except ValueError as e:
+            raise ValueError(
+                f"Invalid role: {role_str}. Valid roles: {[r.value for r in RoundtableRole]}"
+            ) from e
+
+        config = self.load_config()
+        if role in config.roundtable.enabled_roles:
+            config.roundtable.enabled_roles.remove(role)
+            self.save_config(config)
+
+    def set_role_model_mapping(self, role_str: str, model: str) -> None:
+        """Map a role to a specific model."""
+        try:
+            role = RoundtableRole(role_str)
+        except ValueError as e:
+            raise ValueError(
+                f"Invalid role: {role_str}. Valid roles: {[r.value for r in RoundtableRole]}"
+            ) from e
+
+        config = self.load_config()
+        if model not in config.models:
+            raise ValueError(f"Model '{model}' not found in configuration")
+
+        config.roundtable.role_model_mapping[role] = model
+        self.save_config(config)
+
+    def remove_role_model_mapping(self, role_str: str) -> None:
+        """Remove role-to-model mapping."""
+        try:
+            role = RoundtableRole(role_str)
+        except ValueError as e:
+            raise ValueError(
+                f"Invalid role: {role_str}. Valid roles: {[r.value for r in RoundtableRole]}"
+            ) from e
+
+        config = self.load_config()
+        if role in config.roundtable.role_model_mapping:
+            del config.roundtable.role_model_mapping[role]
+            self.save_config(config)
+
+    def set_solo_model(self, model: str) -> None:
+        """Set solo model for all roles."""
+        config = self.load_config()
+        if model not in config.models:
+            raise ValueError(f"Model '{model}' not found in configuration")
+
+        config.roundtable.solo_model = model
+        self.save_config(config)
+
+    def clear_solo_model(self) -> None:
+        """Clear solo model setting."""
+        config = self.load_config()
+        config.roundtable.solo_model = None
+        self.save_config(config)

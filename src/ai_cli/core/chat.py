@@ -58,28 +58,33 @@ class ChatEngine:
             raise
 
     async def roundtable_chat(self, prompt: str, parallel: bool = False) -> None:
-        """Handle a round-table discussion between multiple models."""
-        enabled_models = self.config.roundtable.enabled_models
+        """Handle a round-table discussion with role-based execution."""
+        enabled_roles = self.config.roundtable.get_enabled_roles()
 
-        if len(enabled_models) < 2:
+        if len(enabled_roles) == 0:
             self.console.print(
-                "[yellow]⚠️  Need at least 2 models enabled for round-table. Use 'ai config roundtable --add <model>' to add models.[/yellow]"
+                "[yellow]⚠️  No roles enabled for round-table discussion.[/yellow]"
             )
             return
 
         # Initialize role assigner for this roundtable session
         self.role_assigner = RoleAssigner(
-            enabled_models=enabled_models,
-            role_assignments=self.config.roundtable.role_assignments,
-            role_rotation=self.config.roundtable.role_rotation,
+            roundtable_config=self.config.roundtable,
+            default_model=self.config.default_model,
         )
 
+        # Get unique models involved in this roundtable
+        role_assignments = self.role_assigner.get_role_assignments_for_round(1)
+        unique_models = list(set(role_assignments.values()))
+
         mode_text = "Parallel" if parallel else "Sequential"
-        if self.config.roundtable.use_role_based_prompting:
-            mode_text += " (Role-Based)"
+        mode_text += " (Role-Based)"
 
         self.console.print("\n[bold magenta]🎯 Round-Table Discussion[/bold magenta]")
-        self.console.print(f"[dim]Models: {', '.join(enabled_models)}[/dim]")
+        self.console.print(
+            f"[dim]Roles: {', '.join([role.value.title() for role in enabled_roles])}[/dim]"
+        )
+        self.console.print(f"[dim]Models: {', '.join(unique_models)}[/dim]")
         self.console.print(f"[dim]Mode: {mode_text}[/dim]\n")
 
         # Display the prompt
@@ -97,28 +102,19 @@ class ChatEngine:
 
                 if parallel:
                     responses = await self._run_parallel_round(
-                        conversation_history, enabled_models, round_num + 1
+                        conversation_history, enabled_roles, round_num + 1
                     )
                 else:
                     responses = await self._run_sequential_round(
-                        conversation_history, enabled_models, round_num + 1
+                        conversation_history, enabled_roles, round_num + 1
                     )
 
                 # Add responses to conversation history for next round
-                for model, response in responses.items():
+                for role, response in responses.items():
+                    # Get the model that played this role
+                    model = self.role_assigner.get_model_for_role(role, round_num + 1)
                     message = ChatMessage("assistant", response, {"model": model})
-
-                    # Add role information if using role-based prompting
-                    if (
-                        self.config.roundtable.use_role_based_prompting
-                        and self.role_assigner
-                    ):
-                        role = self.role_assigner.get_role_for_model_in_round(
-                            model, round_num + 1
-                        )
-                        if role:
-                            message.set_roundtable_role(role, model)
-
+                    message.set_roundtable_role(role, model)
                     conversation_history.append(message)
 
                 # Show a separator between rounds
@@ -132,41 +128,63 @@ class ChatEngine:
     async def _run_parallel_round(
         self,
         conversation_history: list[ChatMessage],
-        models: list[str],
+        enabled_roles: list[RoundtableRole],
         round_num: int = 1,
-    ) -> dict[str, str]:
-        """Run a round with all models responding in parallel with streaming."""
+    ) -> dict[RoundtableRole, str]:
+        """Run a round with all roles responding in parallel with streaming."""
+        # Get role assignments for this round
+        if not self.role_assigner:
+            raise RuntimeError("Role assigner not initialized")
+        role_assignments = self.role_assigner.get_role_assignments_for_round(round_num)
+
         # Create multi-stream display for concurrent streaming
         multi_display = MultiStreamDisplay(self.console)
 
-        # Initialize empty responses for all models in the display
-        for model in models:
-            await multi_display.update_model_response(model, "")
+        # Initialize empty responses for all roles in the display
+        for role in enabled_roles:
+            model = role_assignments[role]
+            await multi_display.update_model_response(
+                f"{model} ({role.value.title()})", ""
+            )
 
         tasks = []
-        for model in models:
+        for role in enabled_roles:
+            model = role_assignments[role]
+            # Build role-specific messages
+            role_messages = self._build_role_messages(
+                role, conversation_history, round_num
+            )
+
             task = asyncio.create_task(
                 self._get_model_response(
-                    model, conversation_history, multi_stream_display=multi_display
+                    model,
+                    role_messages,
+                    multi_stream_display=multi_display,
+                    display_name=f"{model} ({role.value.title()})",
                 )
             )
-            tasks.append((model, task))
+            tasks.append((role, task))
 
-        responses: dict[str, str] = {}
+        responses: dict[RoundtableRole, str] = {}
 
         # Wait for all tasks to complete
-        for model, task in tasks:
+        for role, task in tasks:
+            model = role_assignments[role]
             try:
                 response = await asyncio.wait_for(
                     task, timeout=self.config.roundtable.timeout_seconds
                 )
-                responses[model] = response
+                responses[role] = response
             except asyncio.TimeoutError:
-                responses[model] = f"⚠️ {model} timed out"
-                await multi_display.update_model_response(model, responses[model])
+                responses[role] = f"⚠️ {model} timed out"
+                await multi_display.update_model_response(
+                    f"{model} ({role.value.title()})", responses[role]
+                )
             except Exception as e:
-                responses[model] = f"❌ {model} error: {str(e)}"
-                await multi_display.update_model_response(model, responses[model])
+                responses[role] = f"❌ {model} error: {str(e)}"
+                await multi_display.update_model_response(
+                    f"{model} ({role.value.title()})", responses[role]
+                )
 
         # Finalize the multi-stream display
         await multi_display.finalize_all_responses()
@@ -176,77 +194,35 @@ class ChatEngine:
     async def _run_sequential_round(
         self,
         conversation_history: list[ChatMessage],
-        models: list[str],
+        enabled_roles: list[RoundtableRole],
         round_num: int = 1,
-    ) -> dict[str, str]:
-        """Run a round with models responding sequentially."""
-        responses: dict[str, str] = {}
+    ) -> dict[RoundtableRole, str]:
+        """Run a round with roles responding sequentially in fixed order."""
+        responses: dict[RoundtableRole, str] = {}
 
-        # Get role assignments for this round if using role-based prompting
-        role_assignments: dict[str, RoundtableRole] = {}
-        if self.config.roundtable.use_role_based_prompting and self.role_assigner:
-            role_assignments = self.role_assigner.assign_roles_for_round(
-                round_num, self.config.roundtable.discussion_rounds
-            )
+        # Get role assignments for this round
+        if not self.role_assigner:
+            raise RuntimeError("Role assigner not initialized")
+        role_assignments = self.role_assigner.get_role_assignments_for_round(round_num)
 
-        for model in models:
+        # Execute roles in fixed order: generator, critic, refiner, evaluator
+        for role in enabled_roles:
             try:
-                # Determine what messages to send to this model
-                if (
-                    self.config.roundtable.use_role_based_prompting
-                    and model in role_assignments
-                ):
-                    # Use role-based prompting
-                    role = role_assignments[model]
+                model = role_assignments[role]
 
-                    # Build enhanced conversation history that includes current round responses
-                    # This is needed for example the CRITIC role to see previous responses within the same round
-                    # from the generator role
-                    enhanced_history = conversation_history[
-                        1:
-                    ].copy()  # Previous rounds (exclude original user prompt)
+                # Build role-specific messages
+                current_messages = self._build_role_messages(
+                    role, conversation_history, round_num, responses
+                )
 
-                    # Add responses from models that have already responded in this round
-                    for prev_model, prev_response in responses.items():
-                        response_message = ChatMessage(
-                            "assistant", prev_response, {"model": prev_model}
-                        )
-                        # Add role information if available
-                        prev_role = role_assignments.get(prev_model)
-                        if prev_role:
-                            response_message.set_roundtable_role(prev_role, prev_model)
-                        enhanced_history.append(response_message)
-
-                    # Build role-specific prompt with enhanced history
-                    original_prompt = conversation_history[0].content
-                    role_prompt = self.role_prompt_builder.build_role_prompt(
-                        role=role,
-                        original_prompt=original_prompt,
-                        conversation_history=enhanced_history,
-                        current_round=round_num,
-                        total_rounds=self.config.roundtable.discussion_rounds,
-                    )
-
-                    # Create message list with role-based prompt
-                    current_messages = [ChatMessage("user", role_prompt)]
-
-                    # Display role assignment
-                    self.console.print(
-                        f"[dim]🎭 {model} playing role: {role.value.title()}[/dim]"
-                    )
-
-                else:
-                    # Fall back to basic conversation history (non-role-based mode)
-                    current_messages = conversation_history
+                # Display role assignment
+                self.console.print(
+                    f"[dim]🎭 {model} playing role: {role.value.title()}[/dim]"
+                )
 
                 # Create streaming display for this model
                 model_config = self.config.get_model_config(model)
-                role_info = ""
-                if model in role_assignments:
-                    role_info = f" ({role_assignments[model].value.title()})"
-
-                # Display model info before streaming starts
-                title = f"🤖 {model} ({model_config.provider}){role_info}"
+                title = f"🤖 {model} ({model_config.provider}) - {role.value.title()}"
                 self.console.print(f"\n[bold blue]{title}[/bold blue]\n")
 
                 # Create a new streaming display for this model
@@ -255,14 +231,55 @@ class ChatEngine:
                 response = await self._get_model_response(
                     model, current_messages, streaming_display=streaming_display
                 )
-                responses[model] = response
+                responses[role] = response
 
             except Exception as e:
                 error_msg = f"❌ Error: {str(e)}"
-                responses[model] = error_msg
-                self._display_single_response(model, error_msg)
+                responses[role] = error_msg
+                model = role_assignments.get(role, "Unknown")
+                self._display_single_response(
+                    model, error_msg, f" - {role.value.title()}"
+                )
 
         return responses
+
+    def _build_role_messages(
+        self,
+        role: RoundtableRole,
+        conversation_history: list[ChatMessage],
+        round_num: int,
+        current_round_responses: Optional[dict[RoundtableRole, str]] = None,
+    ) -> list[ChatMessage]:
+        """Build role-specific messages for a model."""
+        if current_round_responses is None:
+            current_round_responses = {}
+
+        # Build enhanced conversation history that includes current round responses
+        enhanced_history = conversation_history[
+            1:
+        ].copy()  # Previous rounds (exclude original user prompt)
+
+        # Add responses from roles that have already responded in this round
+        for prev_role, prev_response in current_round_responses.items():
+            if not self.role_assigner:
+                raise RuntimeError("Role assigner not initialized")
+            model = self.role_assigner.get_model_for_role(prev_role, round_num)
+            response_message = ChatMessage("assistant", prev_response, {"model": model})
+            response_message.set_roundtable_role(prev_role, model)
+            enhanced_history.append(response_message)
+
+        # Build role-specific prompt with enhanced history
+        original_prompt = conversation_history[0].content
+        role_prompt = self.role_prompt_builder.build_role_prompt(
+            role=role,
+            original_prompt=original_prompt,
+            conversation_history=enhanced_history,
+            current_round=round_num,
+            total_rounds=self.config.roundtable.discussion_rounds,
+        )
+
+        # Create message list with role-based prompt
+        return [ChatMessage("user", role_prompt)]
 
     async def _get_model_response(
         self,
@@ -270,9 +287,11 @@ class ChatEngine:
         messages: list[ChatMessage],
         streaming_display: Optional[StreamingDisplay] = None,
         multi_stream_display: Optional[MultiStreamDisplay] = None,
+        display_name: Optional[str] = None,
     ) -> str:
         """Get a response from a specific model, optionally with streaming display."""
         provider = self.provider_factory.get_provider(model_name)
+        display_key = display_name or model_name
 
         response = ""
         async for chunk in provider.chat_stream(messages):
@@ -282,7 +301,7 @@ class ChatEngine:
             if streaming_display:
                 await streaming_display.update_response(response, model_name)
             elif multi_stream_display:
-                await multi_stream_display.update_model_response(model_name, response)
+                await multi_stream_display.update_model_response(display_key, response)
 
         # Finalize streaming display if provided
         if streaming_display:

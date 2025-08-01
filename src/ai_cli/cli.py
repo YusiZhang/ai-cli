@@ -270,69 +270,80 @@ def config_add_model(
 
 @config_app.command("roundtable")
 def config_roundtable(
-    add: Optional[str] = typer.Option(
-        None, "--add", "-a", help="Add model to round-table"
+    enable_role: Optional[str] = typer.Option(
+        None,
+        "--enable-role",
+        "-e",
+        help="Enable a role (generator, critic, refiner, evaluator)",
     ),
-    remove: Optional[str] = typer.Option(
-        None, "--remove", "-r", help="Remove model from round-table"
+    disable_role: Optional[str] = typer.Option(
+        None, "--disable-role", "-d", help="Disable a role"
     ),
-    list_models: bool = typer.Option(
-        False, "--list", "-l", help="List round-table models"
+    map_role: Optional[str] = typer.Option(
+        None, "--map-role", "-m", help="Map role to model (format: role=model)"
     ),
-    enable_roles: bool = typer.Option(
-        False, "--enable-roles", help="Enable role-based prompting"
+    unmap_role: Optional[str] = typer.Option(
+        None, "--unmap-role", "-u", help="Remove role mapping"
     ),
-    disable_roles: bool = typer.Option(
-        False, "--disable-roles", help="Disable role-based prompting"
+    solo_model: Optional[str] = typer.Option(
+        None, "--solo-model", "-s", help="Set solo model for all roles"
     ),
-    enable_rotation: bool = typer.Option(
-        False, "--enable-rotation", help="Enable role rotation"
+    clear_solo: bool = typer.Option(
+        False, "--clear-solo", help="Clear solo model setting"
     ),
-    disable_rotation: bool = typer.Option(
-        False, "--disable-rotation", help="Disable role rotation"
+    list_config: bool = typer.Option(
+        False, "--list", "-l", help="List roundtable configuration"
     ),
 ) -> None:
-    """Manage round-table configuration."""
+    """Manage round-table role configuration."""
     try:
-        if add:
-            config_manager.add_roundtable_model(add)
-            console.print(f"[green]✓ Added {add} to round-table[/green]")
-        elif remove:
-            config_manager.remove_roundtable_model(remove)
-            console.print(f"[green]✓ Removed {remove} from round-table[/green]")
-        elif enable_roles:
-            config_manager.set_role_based_prompting(True)
-            console.print("[green]✓ Role-based prompting enabled[/green]")
-        elif disable_roles:
-            config_manager.set_role_based_prompting(False)
-            console.print("[green]✓ Role-based prompting disabled[/green]")
-        elif enable_rotation:
-            config_manager.set_role_rotation(True)
-            console.print("[green]✓ Role rotation enabled[/green]")
-        elif disable_rotation:
-            config_manager.set_role_rotation(False)
-            console.print("[green]✓ Role rotation disabled[/green]")
-        elif list_models:
+        if enable_role:
+            config_manager.enable_roundtable_role(enable_role)
+            console.print(f"[green]✓ Enabled role: {enable_role}[/green]")
+        elif disable_role:
+            config_manager.disable_roundtable_role(disable_role)
+            console.print(f"[green]✓ Disabled role: {disable_role}[/green]")
+        elif map_role:
+            if "=" not in map_role:
+                console.print("[red]Error: Use format --map-role role=model[/red]")
+                raise typer.Exit(1)
+            role_str, model = map_role.split("=", 1)
+            config_manager.set_role_model_mapping(role_str.strip(), model.strip())
+            console.print(f"[green]✓ Mapped {role_str} to {model}[/green]")
+        elif unmap_role:
+            config_manager.remove_role_model_mapping(unmap_role)
+            console.print(f"[green]✓ Removed mapping for {unmap_role}[/green]")
+        elif solo_model:
+            config_manager.set_solo_model(solo_model)
+            console.print(f"[green]✓ Set solo model to {solo_model}[/green]")
+        elif clear_solo:
+            config_manager.clear_solo_model()
+            console.print("[green]✓ Cleared solo model setting[/green]")
+        elif list_config:
             config = config_manager.load_config()
-            console.print("\n[bold blue]🔄 Round-table Configuration[/bold blue]\n")
+            console.print("\n[bold blue]🎯 Round-table Configuration[/bold blue]\n")
 
-            console.print("[cyan]Models:[/cyan]")
-            for model in config.roundtable.enabled_models:
-                console.print(f"  • {model}")
+            # Show enabled roles
+            enabled_roles = config.roundtable.get_enabled_roles()
+            console.print("[cyan]Enabled Roles:[/cyan]")
+            for role in enabled_roles:
+                console.print(f"  • {role.value.title()}")
 
-            console.print("\n[cyan]Settings:[/cyan]")
-            console.print(f"  Discussion rounds: {config.roundtable.discussion_rounds}")
+            # Show role-model mappings
+            if config.roundtable.role_model_mapping:
+                console.print("\n[cyan]Role-Model Mappings:[/cyan]")
+                for role, model in config.roundtable.role_model_mapping.items():
+                    console.print(f"  {role.value.title()}: {model}")
+
+            # Show solo model if set
+            if config.roundtable.solo_model:
+                console.print(
+                    f"\n[cyan]Solo Model:[/cyan] {config.roundtable.solo_model}"
+                )
+
+            console.print("\n[cyan]Discussion Settings:[/cyan]")
+            console.print(f"  Rounds: {config.roundtable.discussion_rounds}")
             console.print(f"  Parallel mode: {config.roundtable.parallel_responses}")
-            console.print(
-                f"  Role-based prompting: {config.roundtable.use_role_based_prompting}"
-            )
-            console.print(f"  Role rotation: {config.roundtable.role_rotation}")
-
-            if config.roundtable.role_assignments:
-                console.print("\n[cyan]Role Assignments:[/cyan]")
-                for model, roles in config.roundtable.role_assignments.items():
-                    role_names = [role.value.title() for role in roles]
-                    console.print(f"  {model}: {', '.join(role_names)}")
 
             if config.roundtable.custom_role_templates:
                 console.print("\n[cyan]Custom Role Templates:[/cyan]")
@@ -343,7 +354,7 @@ def config_roundtable(
             console.print()
         else:
             console.print(
-                "[yellow]Please specify an option (--add, --remove, --list, --enable-roles, --disable-roles, --enable-rotation, --disable-rotation)[/yellow]"
+                "[yellow]Please specify an option. Use --help for available commands.[/yellow]"
             )
 
     except Exception as e:

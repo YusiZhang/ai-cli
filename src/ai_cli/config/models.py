@@ -30,16 +30,64 @@ class ModelConfig(BaseModel):
 class RoundTableConfig(BaseModel):
     """Configuration for round-table discussions."""
 
-    enabled_models: list[str] = []
+    # Role-centric configuration (new approach)
+    enabled_roles: list[RoundtableRole] = []
+    role_model_mapping: dict[RoundtableRole, str] = {}
+    solo_model: Optional[str] = None
+
+    # Discussion settings
     discussion_rounds: int = 2
     parallel_responses: bool = False
     timeout_seconds: int = 30
 
-    # Enhanced role-based configuration
+    # Template customization
+    custom_role_templates: dict[RoundtableRole, str] = {}
+
+    # Legacy fields (deprecated but kept for migration)
+    enabled_models: list[str] = []
     use_role_based_prompting: bool = True
     role_assignments: dict[str, list[RoundtableRole]] = {}
     role_rotation: bool = True
-    custom_role_templates: dict[RoundtableRole, str] = {}
+
+    @field_validator("enabled_roles", mode="before")
+    @classmethod
+    def convert_enabled_roles(cls, v: Any) -> list[RoundtableRole]:
+        """Convert string role values to RoundtableRole enum values and set defaults."""
+        if not v:
+            # Default to all roles if none specified
+            return list(RoundtableRole)
+
+        if isinstance(v, list):
+            converted_roles = []
+            for role in v:
+                if isinstance(role, str):
+                    try:
+                        converted_roles.append(RoundtableRole(role))
+                    except ValueError:
+                        continue
+                elif isinstance(role, RoundtableRole):
+                    converted_roles.append(role)
+            return converted_roles
+        return list(RoundtableRole)
+
+    @field_validator("role_model_mapping", mode="before")
+    @classmethod
+    def convert_role_model_mapping(cls, v: Any) -> dict[RoundtableRole, str]:
+        """Convert string keys to RoundtableRole enum keys."""
+        if not isinstance(v, dict):
+            return {}
+
+        result = {}
+        for key, model in v.items():
+            if isinstance(key, str):
+                try:
+                    role_key = RoundtableRole(key)
+                    result[role_key] = model
+                except ValueError:
+                    continue
+            elif isinstance(key, RoundtableRole):
+                result[key] = model
+        return result
 
     @field_validator("role_assignments", mode="before")
     @classmethod
@@ -86,21 +134,52 @@ class RoundTableConfig(BaseModel):
                 result[key] = template
         return result
 
-    def get_available_roles_for_model(self, model_name: str) -> list[RoundtableRole]:
-        """Get the roles that a specific model can play."""
-        if model_name in self.role_assignments:
-            return self.role_assignments[model_name]
-        # Default: all models can play all roles
-        return list(RoundtableRole)
+    def get_model_for_role(self, role: RoundtableRole, default_model: str) -> str:
+        """Get the model assigned to a specific role using priority fallback logic."""
+        # Priority 1: explicit role_model_mapping
+        if role in self.role_model_mapping:
+            return self.role_model_mapping[role]
 
-    def can_model_play_role(self, model_name: str, role: RoundtableRole) -> bool:
-        """Check if a model can play a specific role."""
-        available_roles = self.get_available_roles_for_model(model_name)
-        return role in available_roles
+        # Priority 2: solo_model
+        if self.solo_model:
+            return self.solo_model
+
+        # Priority 3: first available model from role_model_mapping
+        if self.role_model_mapping:
+            return next(iter(self.role_model_mapping.values()))
+
+        # Priority 4: default_model
+        return default_model
+
+    def get_enabled_roles(self) -> list[RoundtableRole]:
+        """Get the list of enabled roles in execution order."""
+        if not self.enabled_roles:
+            return list(RoundtableRole)
+
+        # Return roles in fixed execution order: generator, critic, refiner, evaluator
+        ordered_roles = [
+            RoundtableRole.GENERATOR,
+            RoundtableRole.CRITIC,
+            RoundtableRole.REFINER,
+            RoundtableRole.EVALUATOR,
+        ]
+        return [role for role in ordered_roles if role in self.enabled_roles]
 
     def get_role_template(self, role: RoundtableRole) -> Optional[str]:
         """Get custom template for a role, if configured."""
         return self.custom_role_templates.get(role)
+
+    # Legacy methods for backward compatibility
+    def get_available_roles_for_model(self, model_name: str) -> list[RoundtableRole]:
+        """Get the roles that a specific model can play (legacy method)."""
+        if model_name in self.role_assignments:
+            return self.role_assignments[model_name]
+        return list(RoundtableRole)
+
+    def can_model_play_role(self, model_name: str, role: RoundtableRole) -> bool:
+        """Check if a model can play a specific role (legacy method)."""
+        available_roles = self.get_available_roles_for_model(model_name)
+        return role in available_roles
 
 
 class UIConfig(BaseModel):

@@ -134,25 +134,25 @@ class TestCLI:
         mock_config_manager.update_model.assert_called_once()
 
     @patch("ai_cli.cli.config_manager")
-    def test_config_roundtable_add(self, mock_config_manager):
-        """Test config roundtable add command."""
+    def test_config_roundtable_enable_role(self, mock_config_manager):
+        """Test config roundtable enable role command."""
         result = self.runner.invoke(
-            app, ["config", "roundtable", "--add", "test-model"]
+            app, ["config", "roundtable", "--enable-role", "generator"]
         )
 
         assert result.exit_code == 0
-        mock_config_manager.add_roundtable_model.assert_called_once_with("test-model")
+        mock_config_manager.enable_roundtable_role.assert_called_once_with("generator")
 
     @patch("ai_cli.cli.config_manager")
-    def test_config_roundtable_remove(self, mock_config_manager):
-        """Test config roundtable remove command."""
+    def test_config_roundtable_map_role(self, mock_config_manager):
+        """Test config roundtable map role command."""
         result = self.runner.invoke(
-            app, ["config", "roundtable", "--remove", "test-model"]
+            app, ["config", "roundtable", "--map-role", "generator=test-model"]
         )
 
         assert result.exit_code == 0
-        mock_config_manager.remove_roundtable_model.assert_called_once_with(
-            "test-model"
+        mock_config_manager.set_role_model_mapping.assert_called_once_with(
+            "generator", "test-model"
         )
 
     @patch("ai_cli.cli.env_manager")

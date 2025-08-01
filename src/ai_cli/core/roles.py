@@ -2,9 +2,12 @@
 
 import logging
 from enum import Enum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from .messages import ChatMessage
+
+if TYPE_CHECKING:
+    from ..config.models import RoundTableConfig
 
 logger = logging.getLogger(__name__)
 
@@ -250,153 +253,54 @@ class RolePromptBuilder:
 
 
 class RoleAssigner:
-    """Handles assignment of roles to models across roundtable rounds."""
+    """Handles role-to-model assignments using explicit mapping configuration."""
 
     def __init__(
         self,
-        enabled_models: list[str],
-        role_assignments: dict[str, list[RoundtableRole]],
-        role_rotation: bool = True,
+        roundtable_config: "RoundTableConfig",
+        default_model: str,
     ):
-        """Initialize the role assigner with model and role configuration."""
-        self.enabled_models = enabled_models
-        self.role_assignments = role_assignments
-        self.role_rotation = role_rotation
-        self._round_assignments: dict[int, dict[str, RoundtableRole]] = {}
+        """Initialize the role assigner with roundtable configuration."""
+        self.roundtable_config = roundtable_config
+        self.default_model = default_model
+        self._round_assignments: dict[int, dict[RoundtableRole, str]] = {}
 
-    def assign_roles_for_round(
-        self, round_num: int, total_rounds: int
-    ) -> dict[str, RoundtableRole]:
-        """Assign roles to models for a specific round."""
+    def get_role_assignments_for_round(
+        self, round_num: int
+    ) -> dict[RoundtableRole, str]:
+        """Get role-to-model assignments for a specific round."""
 
         if round_num in self._round_assignments:
             return self._round_assignments[round_num]
 
+        # Build assignments for all enabled roles
         assignments = {}
+        enabled_roles = self.roundtable_config.get_enabled_roles()
 
-        if len(self.enabled_models) == 1:
-            # Single model - assign GENERATOR for all rounds
-            assignments[self.enabled_models[0]] = RoundtableRole.GENERATOR
-        elif len(self.enabled_models) == 2:
-            # Two models - use generator/critic pattern
-            assignments = self._assign_two_model_roles(round_num, total_rounds)
-        else:
-            # Multiple models - use sophisticated assignment
-            assignments = self._assign_multi_model_roles(round_num, total_rounds)
-
-        # Validate assignments against model capabilities
-        assignments = self._validate_assignments(assignments)
+        for role in enabled_roles:
+            model = self.roundtable_config.get_model_for_role(role, self.default_model)
+            assignments[role] = model
+            logger.debug(f"Assigned {role.value} to {model}")
 
         self._round_assignments[round_num] = assignments
         return assignments
 
-    def _assign_two_model_roles(
-        self, round_num: int, total_rounds: int
-    ) -> dict[str, RoundtableRole]:
-        """Assign roles for two-model roundtable."""
-        model1, model2 = self.enabled_models
-        assignments = {}
-
-        if round_num == 1:
-            # First round: model1 generates, model2 critiques
-            assignments[model1] = RoundtableRole.GENERATOR
-            assignments[model2] = RoundtableRole.CRITIC
-        elif self.role_rotation and round_num > 1:
-            # Subsequent rounds: alternate or refine
-            if round_num % 2 == 0:
-                assignments[model2] = RoundtableRole.REFINER
-                assignments[model1] = RoundtableRole.CRITIC
-            else:
-                assignments[model1] = RoundtableRole.GENERATOR
-                assignments[model2] = RoundtableRole.CRITIC
-        else:
-            # No rotation: maintain generator/critic roles
-            assignments[model1] = RoundtableRole.GENERATOR
-            assignments[model2] = RoundtableRole.CRITIC
-
-        return assignments
-
-    def _assign_multi_model_roles(
-        self, round_num: int, total_rounds: int
-    ) -> dict[str, RoundtableRole]:
-        """Assign roles for multi-model roundtable."""
-        assignments = {}
-        num_models = len(self.enabled_models)
-
-        if round_num == 1:
-            # First round: distribute generator/critic roles
-            for i, model in enumerate(self.enabled_models):
-                if i < num_models // 2 + 1:
-                    assignments[model] = RoundtableRole.GENERATOR
-                else:
-                    assignments[model] = RoundtableRole.CRITIC
-        elif round_num == total_rounds and total_rounds > 2:
-            # Final round: include evaluators
-            for i, model in enumerate(self.enabled_models):
-                if i == 0:
-                    assignments[model] = RoundtableRole.EVALUATOR
-                elif i < num_models // 2 + 1:
-                    assignments[model] = RoundtableRole.REFINER
-                else:
-                    assignments[model] = RoundtableRole.CRITIC
-        else:
-            # Middle rounds: mix of refiners and critics
-            for i, model in enumerate(self.enabled_models):
-                if i < num_models // 2:
-                    assignments[model] = RoundtableRole.REFINER
-                else:
-                    assignments[model] = RoundtableRole.CRITIC
-
-        return assignments
-
-    def _validate_assignments(
-        self, assignments: dict[str, RoundtableRole]
-    ) -> dict[str, RoundtableRole]:
-        """Validate and adjust role assignments based on model capabilities.
-
-        When role-based prompting is used, we prefer to honor the intended role
-        assignments and let the template system handle fallback to default templates.
-        Role assignments should be treated as preferences rather than hard restrictions
-        unless the model has very specific limitations.
-        """
-        validated = {}
-
-        for model, role in assignments.items():
-            if model in self.role_assignments and self.role_assignments[model]:
-                available_roles = self.role_assignments[model]
-                if role in available_roles:
-                    # Model can play the assigned role
-                    validated[model] = role
-                    logger.debug(
-                        f"Model {model} assigned to preferred role {role.value}"
-                    )
-                else:
-                    # Model has role restrictions but can't play assigned role
-                    # In role-based prompting, we want to allow more flexibility
-                    # to enable template fallback, so we'll use the assigned role anyway
-                    # and rely on the template system to handle missing custom templates
-                    validated[model] = role
-                    logger.debug(
-                        f"Model {model} assigned to role {role.value} (outside preferences {[r.value for r in available_roles]}) "
-                        f"- template fallback will handle default prompts"
-                    )
-            else:
-                # No restrictions - use assigned role
-                validated[model] = role
-                logger.debug(
-                    f"No role restrictions for {model}, using assigned role {role.value}"
-                )
-
-        return validated
+    def get_model_for_role(self, role: RoundtableRole, round_num: int = 1) -> str:
+        """Get the model assigned to a specific role for a specific round."""
+        assignments = self.get_role_assignments_for_round(round_num)
+        return assignments.get(role, self.default_model)
 
     def get_role_for_model_in_round(
         self, model: str, round_num: int
     ) -> Optional[RoundtableRole]:
-        """Get the role assigned to a specific model in a specific round."""
-        if round_num in self._round_assignments:
-            return self._round_assignments[round_num].get(model)
+        """Get the role assigned to a specific model in a specific round (legacy compatibility)."""
+        assignments = self.get_role_assignments_for_round(round_num)
+        # Reverse lookup: find role for given model
+        for role, assigned_model in assignments.items():
+            if assigned_model == model:
+                return role
         return None
 
-    def get_all_assignments(self) -> dict[int, dict[str, RoundtableRole]]:
+    def get_all_assignments(self) -> dict[int, dict[RoundtableRole, str]]:
         """Get all role assignments across all rounds."""
         return self._round_assignments.copy()
