@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from ..core.roles import RoundtableRole
@@ -31,8 +31,10 @@ class RoundTableConfig(BaseModel):
     """Configuration for round-table discussions."""
 
     # Role-centric configuration (new approach)
-    enabled_roles: list[RoundtableRole] = []
-    role_model_mapping: dict[RoundtableRole, str] = {}
+    enabled_roles: list[RoundtableRole] = Field(
+        default_factory=lambda: list(RoundtableRole)
+    )
+    role_model_mapping: dict[RoundtableRole, str] = Field(default_factory=dict)
     solo_model: Optional[str] = None
 
     # Discussion settings
@@ -41,12 +43,11 @@ class RoundTableConfig(BaseModel):
     timeout_seconds: int = 30
 
     # Template customization
-    custom_role_templates: dict[RoundtableRole, str] = {}
+    custom_role_templates: dict[RoundtableRole, str] = Field(default_factory=dict)
 
     # Legacy fields (deprecated but kept for migration)
-    enabled_models: list[str] = []
     use_role_based_prompting: bool = True
-    role_assignments: dict[str, list[RoundtableRole]] = {}
+    role_assignments: dict[str, list[RoundtableRole]] = Field(default_factory=dict)
     role_rotation: bool = True
 
     @field_validator("enabled_roles", mode="before")

@@ -222,7 +222,7 @@ Just type your message and press Enter to chat with the current model.
 **Configuration:**
 
 • **Default Model:** {config.default_model}
-• **Round-table Models:** {len(config.roundtable.enabled_models)} configured
+• **Round-table Roles:** {len(config.roundtable.get_enabled_roles())} enabled
 • **Discussion Rounds:** {config.roundtable.discussion_rounds}
 • **Parallel Mode:** {config.roundtable.parallel_responses}
 • **Theme:** {config.ui.theme}

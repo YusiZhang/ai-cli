@@ -47,7 +47,6 @@ model = "gpt-4"
 api_key = "test-key"
 
 [roundtable]
-enabled_models = ["test-model"]
 discussion_rounds = 3
 
 [ui]
@@ -114,29 +113,6 @@ streaming = false
         """Test setting default model to invalid model raises error."""
         with pytest.raises(ValueError, match="Model 'invalid-model' not found"):
             mock_config_manager.set_default_model("invalid-model")
-
-    def test_add_roundtable_model(self, mock_config_manager):
-        """Test adding model to roundtable."""
-        # Ensure test-model is not in roundtable initially
-        config = mock_config_manager.load_config()
-        config.roundtable.enabled_models = []
-
-        mock_config_manager.add_roundtable_model("test-model")
-
-        config = mock_config_manager.load_config()
-        assert "test-model" in config.roundtable.enabled_models
-
-    def test_add_roundtable_model_invalid(self, mock_config_manager):
-        """Test adding invalid model to roundtable raises error."""
-        with pytest.raises(ValueError, match="Model 'invalid-model' not found"):
-            mock_config_manager.add_roundtable_model("invalid-model")
-
-    def test_remove_roundtable_model(self, mock_config_manager):
-        """Test removing model from roundtable."""
-        mock_config_manager.remove_roundtable_model("test-model")
-
-        config = mock_config_manager.load_config()
-        assert "test-model" not in config.roundtable.enabled_models
 
     def test_list_models(self, mock_config_manager):
         """Test listing all models."""

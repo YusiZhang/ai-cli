@@ -158,7 +158,8 @@ def config_list() -> None:
 
         for name, model_config in models.items():
             is_default = "⭐ " if name == config.default_model else "   "
-            in_roundtable = "🔄 " if name in config.roundtable.enabled_models else "   "
+            # Role-based roundtable no longer uses enabled_models
+            in_roundtable = "   "
 
             panel_content = f"""
 **Provider:** {model_config.provider}

@@ -69,10 +69,15 @@ ai interactive
 ```
 
 #### Round-Table Discussions
-You need to enable at least two AI model to use this. Or create at least two `models` in the config with the same model provider.
+The roundtable uses a role-based system where different roles (generator, critic, refiner, evaluator) can be assigned to different models or use a single model for all roles.
 ```
 [roundtable]
-enabled_models = [ "openai/gpt-4", "gemini"]
+# Enable specific roles (defaults to all roles)
+enabled_roles = ["generator", "critic", "refiner"]
+# Map roles to specific models
+[roundtable.role_model_mapping]
+generator = "openai/gpt-4"
+critic = "gemini"
 ...
 
 [models."openai/gpt-4"]
@@ -156,9 +161,13 @@ ai config roundtable --add anthropic/claude-3-5-sonnet
 ### Role-based Configuration Example
 ```toml
 [roundtable]
-enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet", "gemini"]
-use_role_based_prompting = true
-role_rotation = true
+# Enable specific roles (defaults to all roles if not specified)
+enabled_roles = ["generator", "critic", "refiner", "evaluator"]
+# Map roles to specific models
+[roundtable.role_model_mapping]
+generator = "openai/gpt-4"
+critic = "anthropic/claude-3-5-sonnet"
+refiner = "gemini"
 discussion_rounds = 3
 
 # Optional: Restrict which roles specific models can play
@@ -234,7 +243,14 @@ max_tokens = 4000
 
 # Round-table configuration
 [roundtable]
-enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet", "gemini/gemini-pro"]
+# All roles enabled by default, or specify which ones to use
+enabled_roles = ["generator", "critic", "refiner", "evaluator"]
+# Option 1: Map roles to specific models
+[roundtable.role_model_mapping]
+generator = "openai/gpt-4"
+critic = "anthropic/claude-3-5-sonnet"
+# Option 2: Use one model for all roles
+# solo_model = "openai/gpt-4"
 discussion_rounds = 3
 parallel_responses = false
 use_role_based_prompting = true

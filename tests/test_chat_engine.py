@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from ai_cli.core.messages import ChatMessage
+from ai_cli.core.roles import RoundtableRole
 
 
 class TestChatEngine:
@@ -65,8 +66,15 @@ class TestChatEngine:
         self, mock_chat_engine, mock_provider, async_mock_response
     ):
         """Test roundtable chat in sequential mode."""
-        # Setup multiple models
-        mock_chat_engine.config.roundtable.enabled_models = ["model1", "model2"]
+        # Setup role-based roundtable
+        mock_chat_engine.config.roundtable.enabled_roles = [
+            RoundtableRole.GENERATOR,
+            RoundtableRole.CRITIC,
+        ]
+        mock_chat_engine.config.roundtable.role_model_mapping = {
+            RoundtableRole.GENERATOR: "model1",
+            RoundtableRole.CRITIC: "model2",
+        }
         mock_chat_engine.config.roundtable.discussion_rounds = 1
 
         mock_provider.chat_stream = async_mock_response
@@ -88,8 +96,15 @@ class TestChatEngine:
         self, mock_chat_engine, mock_provider, async_mock_response
     ):
         """Test roundtable chat in parallel mode."""
-        # Setup multiple models
-        mock_chat_engine.config.roundtable.enabled_models = ["model1", "model2"]
+        # Setup role-based roundtable
+        mock_chat_engine.config.roundtable.enabled_roles = [
+            RoundtableRole.GENERATOR,
+            RoundtableRole.CRITIC,
+        ]
+        mock_chat_engine.config.roundtable.role_model_mapping = {
+            RoundtableRole.GENERATOR: "model1",
+            RoundtableRole.CRITIC: "model2",
+        }
         mock_chat_engine.config.roundtable.discussion_rounds = 1
 
         mock_provider.chat_stream = async_mock_response

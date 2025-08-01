@@ -5,11 +5,15 @@
 [models]
 # Model configurations
 "openai/gpt-4" = { provider = "openai", model = "gpt-4", api_key = "env:OPENAI_API_KEY" }
-"gemini" = { provider = "gemini", model = "gemini-pro", api_key = "env:GOOGLE_API_KEY" }
+"gemini" = { provider = "gemini", model = "gemini-pro", api_key = "env:GEMINI_API_KEY" }
 
 [roundtable]
 # Enable two models for round table discussion
-enabled_models = ["openai/gpt-4", "gemini"]
+enabled_roles = ["generator", "critic"]
+
+[roundtable.role_model_mapping]
+generator = "openai/gpt-4"
+critic = "gemini"
 discussion_rounds = 2
 parallel_responses = false
 timeout_seconds = 30

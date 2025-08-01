@@ -88,8 +88,8 @@ class TestConfigManagerInit:
         assert "anthropic/claude-3-5-sonnet" in config_data["models"]
         assert "gemini" in config_data["models"]
 
-        # Check roundtable config
-        assert len(config_data["roundtable"]["enabled_models"]) == 2
+        # Check roundtable config - role-based system defaults to all roles enabled
+        assert "enabled_roles" in config_data["roundtable"]
 
 
 class TestEnvManagerInit:

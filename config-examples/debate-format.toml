@@ -4,7 +4,12 @@
 default_model = "anthropic/claude-3-5-sonnet"
 
 [roundtable]
-enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet", "gemini"]
+enabled_roles = ["generator", "critic", "evaluator"]
+
+[roundtable.role_model_mapping]
+generator = "openai/gpt-4"
+critic = "anthropic/claude-3-5-sonnet"
+evaluator = "gemini"
 discussion_rounds = 5
 parallel_responses = false
 timeout_seconds = 45

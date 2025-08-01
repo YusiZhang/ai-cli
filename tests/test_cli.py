@@ -92,7 +92,7 @@ class TestCLI:
         }
         mock_config = MagicMock()
         mock_config.default_model = "test-model"
-        mock_config.roundtable.enabled_models = ["test-model"]
+        # Role-based roundtable no longer uses enabled_models
         mock_config_manager.load_config.return_value = mock_config
 
         result = self.runner.invoke(app, ["config", "list"])

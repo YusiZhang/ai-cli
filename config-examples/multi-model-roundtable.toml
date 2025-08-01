@@ -4,7 +4,13 @@
 default_model = "openai/gpt-4"
 
 [roundtable]
-enabled_models = ["openai/gpt-4", "anthropic/claude-3-5-sonnet", "gemini", "ollama/llama3"]
+enabled_roles = ["generator", "critic", "refiner", "evaluator"]
+
+[roundtable.role_model_mapping]
+generator = "openai/gpt-4"
+critic = "anthropic/claude-3-5-sonnet"
+refiner = "gemini"
+evaluator = "ollama/llama3"
 discussion_rounds = 4
 parallel_responses = false
 timeout_seconds = 45

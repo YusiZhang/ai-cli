@@ -4,7 +4,11 @@
 
 # Basic roundtable configuration
 [roundtable]
-enabled_models = ["openai/gpt-4", "gemini"]
+enabled_roles = ["generator", "critic"]
+
+[roundtable.role_model_mapping]
+generator = "openai/gpt-4"
+critic = "gemini"
 discussion_rounds = 3
 use_role_based_prompting = true
 role_rotation = true

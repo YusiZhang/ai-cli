@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from ai_cli.config.models import AIConfig, ModelConfig, RoundTableConfig, UIConfig
+from ai_cli.core.roles import RoundtableRole
 
 
 class TestModelConfig:
@@ -55,7 +56,7 @@ class TestRoundTableConfig:
         """Test roundtable configuration defaults."""
         config = RoundTableConfig()
 
-        assert config.enabled_models == []
+        assert config.enabled_roles == list(RoundtableRole)
         assert config.discussion_rounds == 2
         assert config.parallel_responses is False
         assert config.timeout_seconds == 30
@@ -63,13 +64,13 @@ class TestRoundTableConfig:
     def test_roundtable_config_custom(self):
         """Test custom roundtable configuration."""
         config = RoundTableConfig(
-            enabled_models=["model1", "model2"],
+            enabled_roles=[RoundtableRole.GENERATOR, RoundtableRole.CRITIC],
             discussion_rounds=3,
             parallel_responses=True,
             timeout_seconds=60,
         )
 
-        assert config.enabled_models == ["model1", "model2"]
+        assert config.enabled_roles == [RoundtableRole.GENERATOR, RoundtableRole.CRITIC]
         assert config.discussion_rounds == 3
         assert config.parallel_responses is True
         assert config.timeout_seconds == 60

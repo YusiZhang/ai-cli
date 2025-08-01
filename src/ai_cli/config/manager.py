@@ -108,7 +108,6 @@ class ConfigManager:
                     for role, template in config.roundtable.custom_role_templates.items()
                 },
                 # Legacy fields (kept for migration)
-                "enabled_models": config.roundtable.enabled_models,
                 "use_role_based_prompting": config.roundtable.use_role_based_prompting,
                 "role_rotation": config.roundtable.role_rotation,
                 "role_assignments": {
@@ -201,22 +200,6 @@ class ConfigManager:
         config.default_model = model_name
         self.save_config(config)
 
-    def add_roundtable_model(self, model_name: str) -> None:
-        """Add a model to the round-table configuration."""
-        config = self.load_config()
-        if model_name not in config.models:
-            raise ValueError(f"Model '{model_name}' not found in configuration")
-        if model_name not in config.roundtable.enabled_models:
-            config.roundtable.enabled_models.append(model_name)
-            self.save_config(config)
-
-    def remove_roundtable_model(self, model_name: str) -> None:
-        """Remove a model from the round-table configuration."""
-        config = self.load_config()
-        if model_name in config.roundtable.enabled_models:
-            config.roundtable.enabled_models.remove(model_name)
-            self.save_config(config)
-
     def create_default_config(self, minimal: bool = False) -> Path:
         """Create a default configuration file for first-time setup.
 
@@ -277,11 +260,7 @@ class ConfigManager:
                     ),
                 },
             )
-            # Enable roundtable with two main models
-            config.roundtable.enabled_models = [
-                "openai/gpt-4",
-                "anthropic/claude-3-5-sonnet",
-            ]
+            # Roundtable is now role-based and enabled by default
 
         # Save the config
         self._config = config

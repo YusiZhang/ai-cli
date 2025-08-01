@@ -132,22 +132,27 @@ class TestRolePromptBuilder:
         assert "Response 2 (from claude):\nResponse 2" in formatted
 
 
-@pytest.mark.skip("Updating for new role-based roundtable")
 class TestRoleAssigner:
     """Test RoleAssigner functionality."""
 
     def test_init(self):
         """Test RoleAssigner initialization."""
-        models = ["model1", "model2"]
-        role_assignments = {"model1": [RoundtableRole.GENERATOR]}
+        from ai_cli.config.models import RoundTableConfig
 
-        assigner = RoleAssigner(
-            enabled_models=models, role_assignments=role_assignments, role_rotation=True
+        roundtable_config = RoundTableConfig(
+            enabled_roles=[RoundtableRole.GENERATOR, RoundtableRole.CRITIC],
+            role_model_mapping={
+                RoundtableRole.GENERATOR: "model1",
+                RoundtableRole.CRITIC: "model2",
+            },
         )
 
-        assert assigner.enabled_models == models
-        assert assigner.role_assignments == role_assignments
-        assert assigner.role_rotation is True
+        assigner = RoleAssigner(
+            roundtable_config=roundtable_config, default_model="default-model"
+        )
+
+        assert assigner.roundtable_config == roundtable_config
+        assert assigner.default_model == "default-model"
 
     def test_role_assignment_with_mapping(self):
         """Test role assignment with explicit mapping."""
@@ -188,115 +193,138 @@ class TestRoleAssigner:
         assert assignments[RoundtableRole.GENERATOR] == "gpt-4"
         assert assignments[RoundtableRole.CRITIC] == "gpt-4"
 
-    def test_assign_roles_two_models_round2_with_rotation(self):
-        """Test role assignment for two models in round 2 with rotation."""
+    def test_get_model_for_role(self):
+        """Test getting model for specific role."""
+        from ai_cli.config.models import RoundTableConfig
+
+        roundtable_config = RoundTableConfig(
+            enabled_roles=[RoundtableRole.GENERATOR, RoundtableRole.CRITIC],
+            role_model_mapping={
+                RoundtableRole.GENERATOR: "gpt-4",
+                RoundtableRole.CRITIC: "claude",
+            },
+        )
+
         assigner = RoleAssigner(
-            enabled_models=["model1", "model2"], role_assignments={}, role_rotation=True
+            roundtable_config=roundtable_config, default_model="default-model"
         )
 
-        assignments = assigner.assign_roles_for_round(2, 2)
-        assert assignments["model2"] == RoundtableRole.REFINER
-        assert assignments["model1"] == RoundtableRole.CRITIC
+        assert assigner.get_model_for_role(RoundtableRole.GENERATOR, 1) == "gpt-4"
+        assert assigner.get_model_for_role(RoundtableRole.CRITIC, 1) == "claude"
 
-    def test_assign_roles_two_models_no_rotation(self):
-        """Test role assignment for two models without rotation."""
-        assigner = RoleAssigner(
-            enabled_models=["model1", "model2"],
-            role_assignments={},
-            role_rotation=False,
-        )
+        # Test default fallback for unmapped role
+        roundtable_config.enabled_roles.append(RoundtableRole.REFINER)
+        assert assigner.get_model_for_role(RoundtableRole.REFINER, 1) == "default-model"
 
-        # Round 1
-        assignments1 = assigner.assign_roles_for_round(1, 3)
-        assert assignments1["model1"] == RoundtableRole.GENERATOR
-        assert assignments1["model2"] == RoundtableRole.CRITIC
+    def test_role_assignment_with_all_roles(self):
+        """Test role assignment for all roles."""
+        from ai_cli.config.models import RoundTableConfig
 
-        # Round 2 (should be same without rotation)
-        assignments2 = assigner.assign_roles_for_round(2, 3)
-        assert assignments2["model1"] == RoundtableRole.GENERATOR
-        assert assignments2["model2"] == RoundtableRole.CRITIC
-
-    def test_assign_roles_multi_models(self):
-        """Test role assignment for multiple models."""
-        assigner = RoleAssigner(
-            enabled_models=["model1", "model2", "model3", "model4"],
-            role_assignments={},
-            role_rotation=True,
-        )
-
-        # Round 1: mix of generators and critics
-        assignments1 = assigner.assign_roles_for_round(1, 3)
-        generator_count = sum(
-            1 for role in assignments1.values() if role == RoundtableRole.GENERATOR
-        )
-        critic_count = sum(
-            1 for role in assignments1.values() if role == RoundtableRole.CRITIC
-        )
-        assert generator_count >= 2  # At least 2 generators
-        assert critic_count >= 1  # At least 1 critic
-
-        # Final round: should include evaluator
-        assignments_final = assigner.assign_roles_for_round(3, 3)
-        evaluator_count = sum(
-            1 for role in assignments_final.values() if role == RoundtableRole.EVALUATOR
-        )
-        assert evaluator_count >= 1  # At least 1 evaluator
-
-    def test_validate_assignments_with_restrictions(self):
-        """Test assignment validation with role restrictions."""
-        role_assignments = {
-            "model1": [RoundtableRole.GENERATOR],  # Only generator
-            "model2": [
+        roundtable_config = RoundTableConfig(
+            enabled_roles=[
+                RoundtableRole.GENERATOR,
                 RoundtableRole.CRITIC,
                 RoundtableRole.REFINER,
-            ],  # Critic or refiner only
-        }
-
-        assigner = RoleAssigner(
-            enabled_models=["model1", "model2"],
-            role_assignments=role_assignments,
-            role_rotation=True,
+                RoundtableRole.EVALUATOR,
+            ],
+            role_model_mapping={
+                RoundtableRole.GENERATOR: "gpt-4",
+                RoundtableRole.CRITIC: "claude",
+                RoundtableRole.REFINER: "gemini",
+                RoundtableRole.EVALUATOR: "llama",
+            },
         )
 
-        # Try to assign evaluator to model1 (should allow it for template fallback)
-        test_assignments = {
-            "model1": RoundtableRole.EVALUATOR,
-            "model2": RoundtableRole.CRITIC,
-        }
-        validated = assigner._validate_assignments(test_assignments)
+        assigner = RoleAssigner(
+            roundtable_config=roundtable_config, default_model="default-model"
+        )
+
+        assignments = assigner.get_role_assignments_for_round(1)
+        assert len(assignments) == 4
+        assert assignments[RoundtableRole.GENERATOR] == "gpt-4"
+        assert assignments[RoundtableRole.CRITIC] == "claude"
+        assert assignments[RoundtableRole.REFINER] == "gemini"
+        assert assignments[RoundtableRole.EVALUATOR] == "llama"
+
+    def test_role_assignment_fallback_priority(self):
+        """Test role assignment fallback priority logic."""
+        from ai_cli.config.models import RoundTableConfig
+
+        # Test priority 1: explicit role_model_mapping
+        roundtable_config = RoundTableConfig(
+            enabled_roles=[RoundtableRole.GENERATOR],
+            role_model_mapping={RoundtableRole.GENERATOR: "explicit-model"},
+            solo_model="solo-model",  # Should be ignored due to explicit mapping
+        )
+
+        assigner = RoleAssigner(
+            roundtable_config=roundtable_config, default_model="default-model"
+        )
 
         assert (
-            validated["model1"] == RoundtableRole.EVALUATOR
-        )  # Allowed for template fallback
-        assert validated["model2"] == RoundtableRole.CRITIC  # Allowed role
+            assigner.get_model_for_role(RoundtableRole.GENERATOR, 1) == "explicit-model"
+        )
+
+        # Test priority 2: solo_model when no explicit mapping
+        roundtable_config2 = RoundTableConfig(
+            enabled_roles=[RoundtableRole.GENERATOR],
+            solo_model="solo-model",
+        )
+
+        assigner2 = RoleAssigner(
+            roundtable_config=roundtable_config2, default_model="default-model"
+        )
+
+        assert assigner2.get_model_for_role(RoundtableRole.GENERATOR, 1) == "solo-model"
 
     def test_get_role_for_model_in_round(self):
         """Test getting role for specific model in specific round."""
-        assigner = RoleAssigner(
-            enabled_models=["model1", "model2"], role_assignments={}, role_rotation=True
+        from ai_cli.config.models import RoundTableConfig
+
+        roundtable_config = RoundTableConfig(
+            enabled_roles=[RoundtableRole.GENERATOR, RoundtableRole.CRITIC],
+            role_model_mapping={
+                RoundtableRole.GENERATOR: "model1",
+                RoundtableRole.CRITIC: "model2",
+            },
         )
 
-        # Assign roles for round 1
-        assigner.assign_roles_for_round(1, 2)
+        assigner = RoleAssigner(
+            roundtable_config=roundtable_config, default_model="default-model"
+        )
 
+        # Test role lookup for model
         role = assigner.get_role_for_model_in_round("model1", 1)
         assert role == RoundtableRole.GENERATOR
 
-        # Non-existent round
-        role = assigner.get_role_for_model_in_round("model1", 99)
+        role = assigner.get_role_for_model_in_round("model2", 1)
+        assert role == RoundtableRole.CRITIC
+
+        # Non-existent model
+        role = assigner.get_role_for_model_in_round("non-existent", 1)
         assert role is None
 
     def test_caching_assignments(self):
         """Test that role assignments are cached."""
+        from ai_cli.config.models import RoundTableConfig
+
+        roundtable_config = RoundTableConfig(
+            enabled_roles=[RoundtableRole.GENERATOR, RoundtableRole.CRITIC],
+            role_model_mapping={
+                RoundtableRole.GENERATOR: "model1",
+                RoundtableRole.CRITIC: "model2",
+            },
+        )
+
         assigner = RoleAssigner(
-            enabled_models=["model1", "model2"], role_assignments={}, role_rotation=True
+            roundtable_config=roundtable_config, default_model="default-model"
         )
 
         # First call
-        assignments1 = assigner.assign_roles_for_round(1, 2)
+        assignments1 = assigner.get_role_assignments_for_round(1)
 
         # Second call should return cached result
-        assignments2 = assigner.assign_roles_for_round(1, 2)
+        assignments2 = assigner.get_role_assignments_for_round(1)
 
         assert assignments1 == assignments2
         assert id(assignments1) == id(assignments2)  # Same object
@@ -540,7 +568,6 @@ class TestRoundTableConfig:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("Updating for new role-based roundtable")
 class TestChatEngineRoleBasedRoundtable:
     """Test ChatEngine role-based roundtable functionality."""
 
@@ -548,10 +575,14 @@ class TestChatEngineRoleBasedRoundtable:
     def mock_config(self):
         """Create mock configuration with role-based roundtable enabled."""
         config = AIConfig()
-        config.roundtable.enabled_models = [
-            "openai/gpt-4",
-            "anthropic/claude-3-5-sonnet",
+        config.roundtable.enabled_roles = [
+            RoundtableRole.GENERATOR,
+            RoundtableRole.CRITIC,
         ]
+        config.roundtable.role_model_mapping = {
+            RoundtableRole.GENERATOR: "openai/gpt-4",
+            RoundtableRole.CRITIC: "anthropic/claude-3-5-sonnet",
+        }
         config.roundtable.use_role_based_prompting = True
         config.roundtable.discussion_rounds = 2
         return config
@@ -576,17 +607,15 @@ class TestChatEngineRoleBasedRoundtable:
             mock_chat_engine, "_run_sequential_round", new_callable=AsyncMock
         ) as mock_sequential:
             mock_sequential.return_value = {
-                "openai/gpt-4": "Response 1",
-                "anthropic/claude-3-5-sonnet": "Response 2",
+                RoundtableRole.GENERATOR: "Response 1",
+                RoundtableRole.CRITIC: "Response 2",
             }
 
             await mock_chat_engine.roundtable_chat("Test prompt")
 
             assert mock_chat_engine.role_assigner is not None
-            assert mock_chat_engine.role_assigner.enabled_models == [
-                "openai/gpt-4",
-                "anthropic/claude-3-5-sonnet",
-            ]
+            assert mock_chat_engine.role_assigner.roundtable_config is not None
+            assert mock_chat_engine.role_assigner.default_model is not None
 
     async def test_roundtable_chat_shows_role_based_mode(self, mock_chat_engine):
         """Test that roundtable chat shows role-based mode in output."""
@@ -594,8 +623,8 @@ class TestChatEngineRoleBasedRoundtable:
             mock_chat_engine, "_run_sequential_round", new_callable=AsyncMock
         ) as mock_sequential:
             mock_sequential.return_value = {
-                "openai/gpt-4": "Response 1",
-                "anthropic/claude-3-5-sonnet": "Response 2",
+                RoundtableRole.GENERATOR: "Response 1",
+                RoundtableRole.CRITIC: "Response 2",
             }
 
             await mock_chat_engine.roundtable_chat("Test prompt")
@@ -611,10 +640,19 @@ class TestChatEngineRoleBasedRoundtable:
 
     async def test_sequential_round_with_role_based_prompting(self, mock_chat_engine):
         """Test sequential round with role-based prompting."""
+        from ai_cli.config.models import RoundTableConfig
+
+        roundtable_config = RoundTableConfig(
+            enabled_roles=[RoundtableRole.GENERATOR, RoundtableRole.CRITIC],
+            role_model_mapping={
+                RoundtableRole.GENERATOR: "openai/gpt-4",
+                RoundtableRole.CRITIC: "anthropic/claude-3-5-sonnet",
+            },
+        )
+
         mock_chat_engine.role_assigner = RoleAssigner(
-            enabled_models=["openai/gpt-4", "anthropic/claude-3-5-sonnet"],
-            role_assignments={},
-            role_rotation=True,
+            roundtable_config=roundtable_config,
+            default_model="default-model",
         )
 
         conversation_history = [ChatMessage("user", "Test prompt")]
@@ -626,13 +664,13 @@ class TestChatEngineRoleBasedRoundtable:
 
             responses = await mock_chat_engine._run_sequential_round(
                 conversation_history,
-                ["openai/gpt-4", "anthropic/claude-3-5-sonnet"],
+                [RoundtableRole.GENERATOR, RoundtableRole.CRITIC],
                 round_num=1,
             )
 
             assert len(responses) == 2
-            assert "openai/gpt-4" in responses
-            assert "anthropic/claude-3-5-sonnet" in responses
+            assert RoundtableRole.GENERATOR in responses
+            assert RoundtableRole.CRITIC in responses
 
             # Verify role-based prompts were built
             assert mock_get_response.call_count == 2
@@ -651,8 +689,8 @@ class TestChatEngineRoleBasedRoundtable:
             mock_chat_engine, "_run_sequential_round", new_callable=AsyncMock
         ) as mock_sequential:
             mock_sequential.return_value = {
-                "openai/gpt-4": "Response 1",
-                "anthropic/claude-3-5-sonnet": "Response 2",
+                RoundtableRole.GENERATOR: "Response 1",
+                RoundtableRole.CRITIC: "Response 2",
             }
 
             await mock_chat_engine.roundtable_chat("Test prompt")
@@ -662,11 +700,20 @@ class TestChatEngineRoleBasedRoundtable:
 
     async def test_models_can_see_current_round_responses(self, mock_chat_engine):
         """Test that models can see responses from earlier models in the same round."""
+        from ai_cli.config.models import RoundTableConfig
+
         # Set up role assigner
+        roundtable_config = RoundTableConfig(
+            enabled_roles=[RoundtableRole.GENERATOR, RoundtableRole.CRITIC],
+            role_model_mapping={
+                RoundtableRole.GENERATOR: "openai/gpt-4",
+                RoundtableRole.CRITIC: "anthropic/claude-3-5-sonnet",
+            },
+        )
+
         mock_chat_engine.role_assigner = RoleAssigner(
-            enabled_models=["openai/gpt-4", "anthropic/claude-3-5-sonnet"],
-            role_assignments={},
-            role_rotation=True,
+            roundtable_config=roundtable_config,
+            default_model="default-model",
         )
 
         conversation_history = [ChatMessage("user", "Test prompt")]
@@ -694,7 +741,7 @@ class TestChatEngineRoleBasedRoundtable:
             # Run sequential round
             await mock_chat_engine._run_sequential_round(
                 conversation_history,
-                ["openai/gpt-4", "anthropic/claude-3-5-sonnet"],
+                [RoundtableRole.GENERATOR, RoundtableRole.CRITIC],
                 round_num=1,
             )
 
