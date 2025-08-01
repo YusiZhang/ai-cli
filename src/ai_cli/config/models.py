@@ -127,42 +127,33 @@ class AIConfig(BaseSettings):
     @field_validator("models", mode="before")
     @classmethod
     def ensure_default_models(cls, v: dict[str, Any]) -> dict[str, Any]:
-        """Ensure we have some default model configurations."""
+        """Ensure we have some default model configurations only for completely empty configs."""
         if not v:
-            v = {}
-
-        # Add default OpenAI model if not present
-        if "openai/gpt-4" not in v:
-            v["openai/gpt-4"] = {
-                "provider": "openai",
-                "model": "gpt-4",
-                "api_key": "env:OPENAI_API_KEY",
+            # Only add defaults when models dict is completely empty (new user setup)
+            v = {
+                "openai/gpt-4": {
+                    "provider": "openai",
+                    "model": "gpt-4",
+                    "api_key": "env:OPENAI_API_KEY",
+                },
+                "anthropic/claude-3-5-sonnet": {
+                    "provider": "anthropic",
+                    "model": "claude-3-5-sonnet-20241022",
+                    "api_key": "env:ANTHROPIC_API_KEY",
+                },
+                "ollama/llama2": {
+                    "provider": "ollama",
+                    "model": "llama2",
+                    "endpoint": "http://localhost:11434",
+                },
+                "gemini": {
+                    "provider": "gemini",
+                    "model": "gemini-2.5-flash",
+                    "api_key": "env:GEMINI_API_KEY",
+                },
             }
 
-        # Add default Claude model if not present
-        if "anthropic/claude-3-5-sonnet" not in v:
-            v["anthropic/claude-3-5-sonnet"] = {
-                "provider": "anthropic",
-                "model": "claude-3-5-sonnet-20241022",
-                "api_key": "env:ANTHROPIC_API_KEY",
-            }
-
-        # Add default Ollama model if not present
-        if "ollama/llama2" not in v:
-            v["ollama/llama2"] = {
-                "provider": "ollama",
-                "model": "llama2",
-                "endpoint": "http://localhost:11434",
-            }
-
-        # Add default Gemini model if not present
-        if "gemini" not in v:
-            v["gemini"] = {
-                "provider": "gemini",
-                "model": "gemini-2.5-flash",
-                "api_key": "env:GEMINI_API_KEY",
-            }
-
+        # If user has existing models, respect their configuration completely
         return v
 
     def get_config_path(self) -> Path:

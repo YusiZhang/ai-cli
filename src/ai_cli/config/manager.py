@@ -30,12 +30,33 @@ class ConfigManager:
                     config_data = toml.load(f)
                 self._config = AIConfig(**config_data)
             except Exception as e:
-                print(f"Warning: Failed to load config from {self._config_path}: {e}")
-                print("Using default configuration...")
+                print(f"Error: Failed to load config from {self._config_path}: {e}")
+                print(
+                    "Your configuration file appears to be corrupted or has invalid syntax."
+                )
+
+                # Create backup of the problematic config
+                backup_path = self._config_path.with_suffix(".toml.backup")
+                try:
+                    import shutil
+
+                    shutil.copy2(self._config_path, backup_path)
+                    print(f"Backed up your current config to: {backup_path}")
+                except Exception:
+                    pass
+
+                print(
+                    "Please fix the configuration file manually, or run 'ai config init' to recreate it."
+                )
+                print("Using minimal default configuration for this session only...")
+
+                # Don't save defaults automatically - just use them for this session
                 self._config = AIConfig()
+                return self._config
         else:
+            # Only create default config for truly new users
             self._config = AIConfig()
-            self.save_config()  # Save default config
+            self.save_config()  # Save default config for new users
 
         return self._config
 
@@ -45,6 +66,17 @@ class ConfigManager:
             config = self._config
         if config is None:
             raise ValueError("No configuration to save")
+
+        # Create backup of existing config before overwriting
+        if self._config_path.exists():
+            backup_path = self._config_path.with_suffix(".toml.backup")
+            try:
+                import shutil
+
+                shutil.copy2(self._config_path, backup_path)
+            except Exception:
+                # Don't fail the save operation if backup fails
+                pass
 
         config_dict = self._config_to_dict(config)
 
