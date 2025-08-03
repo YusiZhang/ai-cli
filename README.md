@@ -1,9 +1,9 @@
-# ai-cli-chat Multi-model AI Chat at the CLI `ai` featuring round-table discussions
+# Multi-model AI Chat at the CLI `ai` featuring round-table discussions
 
 [![PyPI version](https://badge.fury.io/py/ai-cli-chat.svg)](https://badge.fury.io/py/ai-cli-chat)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://github.com/ai-cli/ai-cli/workflows/Tests/badge.svg)](https://github.com/ai-cli/ai-cli/actions)
+[![Tests](https://github.com/YusiZhang/ai-cli/workflows/Tests/badge.svg)](https://github.com/YusiZhang/ai-cli/actions)
 
 A powerful command-line interface for interacting with multiple AI models, featuring round-table discussions where different AI models can collaborate and critique each other's responses.
 
