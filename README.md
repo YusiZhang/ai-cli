@@ -1,5 +1,6 @@
 # Multi-model AI Chat at the CLI `ai` featuring round-table discussions
 
+[![PyPI Downloads](https://static.pepy.tech/badge/ai-cli-chat)](https://pepy.tech/projects/ai-cli-chat)
 [![PyPI version](https://badge.fury.io/py/ai-cli-chat.svg)](https://badge.fury.io/py/ai-cli-chat)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
