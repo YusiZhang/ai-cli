@@ -31,9 +31,9 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: uv run pytest
+        entry: uv run --with pytest --with pytest-asyncio pytest
         language: system
         types: [python]
         pass_filenames: false
         always_run: true
-        args: [--no-cov, -x]
+        args: [-x]

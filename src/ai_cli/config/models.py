@@ -191,6 +191,10 @@ class UIConfig(BaseModel):
     format: Literal["markdown", "plain"] = "markdown"
     show_model_icons: bool = True
 
+    # Response history configuration
+    response_history_limit: int = 20
+    response_preview_length: int = 50
+
 
 class AIConfig(BaseSettings):
     """Main configuration class for the AI CLI."""

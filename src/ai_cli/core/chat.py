@@ -9,6 +9,7 @@ from rich.panel import Panel
 from ..config.models import AIConfig
 from ..providers.factory import ProviderFactory
 from ..ui.streaming import MultiStreamDisplay, StreamingDisplay
+from .history import ResponseHistory
 from .messages import ChatMessage
 from .roles import RoleAssigner, RolePromptBuilder, RoundtableRole
 
@@ -21,6 +22,10 @@ class ChatEngine:
         self.console = console
         self.provider_factory = ProviderFactory(config)
         self.streaming_display = StreamingDisplay(console)
+        self.response_history = ResponseHistory(
+            max_responses=config.ui.response_history_limit,
+            preview_length=config.ui.response_preview_length,
+        )
 
         # Initialize role-based components
         self.role_prompt_builder = RolePromptBuilder(
@@ -52,6 +57,10 @@ class ChatEngine:
                 await self.streaming_display.update_response(response, model_name)
 
             await self.streaming_display.finalize_response()
+
+            # Save response to history for copying
+            if response.strip():  # Only save non-empty responses
+                self.response_history.add_response(prompt, response.strip(), model_name)
 
         except Exception as e:
             self.console.print(f"[red]❌ Error with {model_name}: {str(e)}[/red]")

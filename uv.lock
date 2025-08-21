@@ -15,6 +15,7 @@ dependencies = [
     { name = "prompt-toolkit" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pyperclip" },
     { name = "questionary" },
     { name = "rich" },
     { name = "toml" },
@@ -38,6 +39,7 @@ tui = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "pre-commit" },
     { name = "types-toml" },
 ]
 
@@ -50,6 +52,7 @@ requires-dist = [
     { name = "prompt-toolkit", specifier = ">=3.0.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
     { name = "pydantic-settings", specifier = ">=2.1.0" },
+    { name = "pyperclip", specifier = ">=1.8.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
@@ -65,7 +68,10 @@ requires-dist = [
 provides-extras = ["dev", "tui"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "types-toml", specifier = ">=0.10.8.20240310" }]
+dev = [
+    { name = "pre-commit", specifier = ">=4.2.0" },
+    { name = "types-toml", specifier = ">=0.10.8.20240310" },
+]
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -1757,6 +1763,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b014
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b", size = 1225217 },
 ]
+
+[[package]]
+name = "pyperclip"
+version = "1.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/23/2f0a3efc4d6a32f3b63cdff36cd398d9701d26cda58e3ab97ac79fb5e60d/pyperclip-1.9.0.tar.gz", hash = "sha256:b7de0142ddc81bfc5c7507eea19da920b92252b548b96186caf94a5e2527d310", size = 20961 }
 
 [[package]]
 name = "pytest"

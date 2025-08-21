@@ -80,6 +80,10 @@ def mock_chat_engine(sample_ai_config, mock_console):
     # Mock the streaming display
     engine.streaming_display.update_response = AsyncMock()
     engine.streaming_display.finalize_response = AsyncMock()
+    # Mock the response history to avoid file operations in tests
+    engine.response_history.add_response = MagicMock()
+    engine.response_history.get_responses = MagicMock(return_value=[])
+    engine.response_history.get_latest = MagicMock(return_value=None)
     return engine
 
 

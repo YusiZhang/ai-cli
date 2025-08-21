@@ -9,9 +9,12 @@ from rich.panel import Panel
 from . import __version__
 from .config.manager import ConfigManager
 from .core.chat import ChatEngine
+from .core.history import ResponseHistory
 from .core.roles import RolePromptTemplates, RoundtableRole
 from .ui.interactive import InteractiveSession
+from .ui.selector import ResponseSelector
 from .utils.env import env_manager
+from .utils.text import copy_to_clipboard
 
 app = typer.Typer(
     name="ai",
@@ -83,6 +86,46 @@ async def _interactive_async() -> None:
         chat_engine = ChatEngine(config, console)
         session = InteractiveSession(chat_engine, console)
         await session.run()
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1) from e
+
+
+@app.command()
+def cp(
+    show: bool = typer.Option(
+        False, "--show", help="Interactive selection of response to copy"
+    ),
+) -> None:
+    """Copy AI response to clipboard."""
+    try:
+        config = config_manager.load_config()
+        response_history = ResponseHistory(
+            max_responses=config.ui.response_history_limit,
+            preview_length=config.ui.response_preview_length,
+        )
+
+        if show:
+            # Show interactive selection
+            responses = response_history.get_responses()
+            selector = ResponseSelector(console)
+            selected_text = selector.select_response(responses)
+
+            if selected_text:
+                copy_to_clipboard(selected_text, console)
+            else:
+                console.print("[dim]No response selected[/dim]")
+        else:
+            # Copy latest response
+            latest = response_history.get_latest()
+            if latest:
+                copy_to_clipboard(latest.response, console)
+            else:
+                console.print("[yellow]No response history found[/yellow]")
+                console.print(
+                    "[dim]Run 'ai chat \"your prompt\"' first to create some responses[/dim]"
+                )
+
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1) from e
