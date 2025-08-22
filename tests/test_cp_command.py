@@ -144,6 +144,63 @@ class TestResponseHistory:
         assert preview == "Response with whitespace"
 
 
+class TestTextProcessing:
+    """Test text processing utilities."""
+
+    def test_strip_ansi_color_codes(self):
+        """Test stripping ANSI color codes from text."""
+        from ai_cli.utils.text import _strip_basic_formatting
+
+        # Test the exact cases from the bug reports
+        test_cases = [
+            # Exact user-reported problematic strings
+            (
+                "[1;33m 1 Google Text-to-Speech: Google's Text-to-Speech engine",
+                " 1 Google Text-to-Speech: Google's Text-to-Speech engine",
+            ),
+            (
+                "The capital of the USA is mWashington, D.C.0m",
+                "The capital of the USA is Washington, D.C.",
+            ),
+            ("<ox1b>[1;33m 1 ElevenLabs:", " 1 ElevenLabs:"),
+            (
+                "The capital of the USA is [1mWashington, D.C.[0m",
+                "The capital of the USA is Washington, D.C.",
+            ),
+            (
+                "The capital of the USA is <0x1b>[1mWashington, D.C.<0x1b>0m",
+                "The capital of the USA is Washington, D.C.",
+            ),
+            # Standard ANSI sequences
+            ("[0m", ""),
+            ("[1;31mRed text[0m", "Red text"),
+            ("[33mYellow[0m", "Yellow"),
+            ("Normal [1;33mYellow[0m Normal", "Normal Yellow Normal"),
+            ("\x1b[1;33mProper ANSI\x1b[0m", "Proper ANSI"),
+            # Hex representations
+            ("<0x1b>[31mRed<0x1b>[0m", "Red"),
+            ("<ox1b>[1;33m text", " text"),
+            ("<0x1b>[1m text", " text"),
+            # Bold markdown
+            ("**Washington, D.C.**", "Washington, D.C."),
+            ("Text with **bold** content", "Text with bold content"),
+            # Various m...0m patterns
+            ("mText here0m and normal text", "Text here and normal text"),
+            ("mWashington, D.C.0m", "Washington, D.C."),
+            ("Text with mBold Text0m content", "Text with Bold Text content"),
+            # Edge cases
+            ("[1m[0m", ""),
+            ("[1;33m[0m", ""),
+            ("m0m", ""),
+        ]
+
+        for input_text, expected in test_cases:
+            result = _strip_basic_formatting(input_text)
+            assert (
+                result == expected
+            ), f"Failed for '{input_text}': got '{result}', expected '{expected}'"
+
+
 class TestResponseSelector:
     """Test ResponseSelector functionality."""
 

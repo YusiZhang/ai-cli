@@ -2,28 +2,13 @@ import re
 
 import pyperclip
 from rich.console import Console
-from rich.markdown import Markdown
 
 
 def strip_rich_formatting(text: str) -> str:
     """Strip Rich markup and formatting from text to get plain text."""
-    # Create a temporary console to render the text
-    console = Console(file=None, width=80)
-
-    # If the text looks like markdown, render it and extract plain text
-    if _looks_like_markdown(text):
-        try:
-            # Render markdown to plain text
-            markdown = Markdown(text)
-            with console.capture() as capture:
-                console.print(markdown, markup=False, highlight=False)
-            # Get the plain text output
-            plain_text = str(capture.get())
-        except Exception:
-            # If markdown rendering fails, fall back to basic stripping
-            plain_text = _strip_basic_formatting(text)
-    else:
-        plain_text = _strip_basic_formatting(text)
+    # Bypass Rich markdown rendering entirely to avoid ANSI corruption
+    # Go directly to comprehensive pattern-based stripping
+    plain_text = _strip_basic_formatting(text)
 
     # Clean up any remaining artifacts
     plain_text = _clean_text(plain_text)
@@ -54,32 +39,51 @@ def copy_to_clipboard(text: str, console: Console) -> bool:
         return False
 
 
-def _looks_like_markdown(text: str) -> bool:
-    """Check if text contains markdown formatting."""
-    markdown_patterns = [
-        r"#{1,6}\s",  # Headers
-        r"\*\*.*?\*\*",  # Bold
-        r"\*.*?\*",  # Italic
-        r"`.*?`",  # Inline code
-        r"```",  # Code blocks
-        r"^\s*[-*+]\s",  # Lists
-        r"^\s*\d+\.\s",  # Numbered lists
-    ]
-
-    for pattern in markdown_patterns:
-        if re.search(pattern, text, re.MULTILINE):
-            return True
-
-    return False
-
-
 def _strip_basic_formatting(text: str) -> str:
     """Strip basic Rich/ANSI formatting codes."""
-    # Remove ANSI escape codes
-    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-    text = ansi_escape.sub("", text)
+    # FIRST: Remove proper ANSI escape sequences (with \x1B)
+    ansi_escape_patterns = [
+        r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])",
+        r"\x1B\[[0-9;]*[mGKH]",
+        r"\x1B\[[\d;]*m",
+        r"\x1b\[[0-9;]*[a-zA-Z]",  # Any remaining escape-like sequences
+    ]
 
-    # Remove Rich markup patterns
+    for pattern in ansi_escape_patterns:
+        text = re.sub(pattern, "", text)
+
+    # SECOND: Process specific user-reported malformed cases (with content extraction)
+
+    # Handle the <0x1b>[1m...<0x1b>0m pattern
+    text = re.sub(r"<0x1b>\[1m(.*?)<0x1b>0m", r"\1", text)
+
+    # Handle all [Xm...[0m and [X;Ym...[0m patterns (only when no \x1B prefix)
+    text = re.sub(r"(?<!\x1B)\[\d+(?:;\d+)*m(.*?)\[0m", r"\1", text)
+
+    # Handle the mWashington, D.C.0m pattern
+    text = re.sub(r"m([^m]*?)0m", r"\1", text)
+
+    # Handle **bold** markdown
+    text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+
+    # THIRD: Remove any remaining malformed ANSI-like sequences
+    malformed_patterns = [
+        r"\[1;33m",  # Exact match for [1;33m
+        r"\[1m",  # Exact match for [1m
+        r"\[0m",  # Exact match for [0m
+        r"\[\d+;\d+m",  # General [1;33m pattern
+        r"\[\d+m",  # General [0m, [1m, [33m etc.
+        # Hex representations of escape sequences
+        r"<ox1b>\[[0-9;]*m",
+        r"<0x1b>\[[0-9;]*m",
+        r"<ox1b>",  # Remove standalone <ox1b>
+        r"<0x1b>",  # Remove standalone <0x1b>
+    ]
+
+    for pattern in malformed_patterns:
+        text = re.sub(pattern, "", text)
+
+    # FOURTH: Remove Rich markup patterns
     rich_patterns = [
         r"\[/?[a-zA-Z0-9_#\s]*\]",  # Rich markup like [bold], [red], etc.
         r"\[/?[a-zA-Z0-9_#\s=]*\]",  # Rich markup with attributes
