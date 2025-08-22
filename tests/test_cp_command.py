@@ -14,11 +14,16 @@ class TestCpCommand:
 
     def test_cp_command_help(self):
         """Test cp command help."""
+        from ai_cli.utils.text import strip_rich_formatting
+
         runner = CliRunner()
         result = runner.invoke(app, ["cp", "--help"])
         assert result.exit_code == 0
-        assert "Copy AI response to clipboard" in result.output
-        assert "--show" in result.output
+
+        # Strip ANSI/Rich formatting from output for reliable text searching
+        clean_output = strip_rich_formatting(result.output)
+        assert "Copy AI response to clipboard" in clean_output
+        assert "--show" in clean_output
 
     @patch("ai_cli.cli.copy_to_clipboard")
     @patch("ai_cli.cli.ResponseHistory")
